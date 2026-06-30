@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026 World Cup Bracket - Multiplayer</title>
+
+  <style>
+    :root {
+      --gap-size: 40px;
+      --line-width: 20px;
+      --line-color: #eab308;
+      --line-thick: 2px;
+    }
+
+    @media (max-width: 1200px) {
+      :root {
+        --gap-size: 20px;
+        --line-width: 10px;
+      }
+    }
+
+    body {
+      background: radial-gradient(circle at 50% -10%, #1e293b 0%, #020617 100%);
+      background-attachment: fixed;
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 40px 20px;
+      overflow-x: auto;
+      min-height: 100vh;
+    }
+
+    h1 {
+      text-align: center;
+      font-weight: 900;
+      font-size: 2.2rem;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      margin-bottom: 20px;
+      color: #ffffff;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    /* --- GAME CONTROLS & POINTS UI --- */
+    .control-panel {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto 40px auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      backdrop-filter: blur(10px);
+    }
+
+    .top-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .mode-toggle {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .data-controls {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      background-color: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #cbd5e1;
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn:hover {
+      background-color: rgba(51, 65, 85, 0.8);
+      color: #ffffff;
+    }
+
+    .btn.active {
+      background-color: #eab308;
+      color: #000000;
+      border-color: #eab308;
+      box-shadow: 0 0 10px rgba(234, 179, 8, 0.3);
+    }
+
+    .btn.export {
+      background-color: #10b981;
+      color: #fff;
+      border-color: #059669;
+    }
+
+    .btn.export:hover {
+      background-color: #059669;
+    }
+
+    .btn.import {
+      background-color: #3b82f6;
+      color: #fff;
+      border-color: #2563eb;
+    }
+
+    .btn.import:hover {
+      background-color: #2563eb;
+    }
+
+    .user-manager {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 15px;
+      border-radius: 8px;
+      flex-wrap: wrap;
+    }
+
+    .user-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .user-select {
+      background: #0f172a;
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .icon-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: white;
+      padding: 8px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .icon-btn:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .icon-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .add-user-form {
+      display: flex;
+      gap: 8px;
+    }
+
+    .add-user-input {
+      background: #0f172a;
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 8px 12px;
+      border-radius: 6px;
+    }
+
+    .total-points {
+      text-align: center;
+      font-size: 18px;
+      color: #f8fafc;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+
+    .total-points span {
+      color: #4ade80;
+      font-size: 26px;
+      font-weight: 900;
+      margin: 0 6px;
+    }
+
+    .total-points.admin-mode {
+      color: #fbbf24;
+    }
+
+    /* --- POINTS BADGES --- */
+    .points-badge {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 800;
+      z-index: 10;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+    }
+
+    .pts-7 {
+      background-color: #fde047;
+      color: #000;
+      border: 2px solid #ca8a04;
+    }
+
+    .pts-5 {
+      background-color: #4ade80;
+      color: #000;
+      border: 2px solid #166534;
+    }
+
+    .pts-0 {
+      background-color: #f87171;
+      color: #fff;
+      border: 2px solid #991b1b;
+    }
+
+    /* --- LEADERBOARD TABLE --- */
+    .leaderboard-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+
+    .leaderboard-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .leaderboard-table th,
+    .leaderboard-table td {
+      padding: 15px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .leaderboard-table th {
+      color: #94a3b8;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-size: 12px;
+    }
+
+    .leaderboard-table tr:hover td {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .leaderboard-table td {
+      font-size: 16px;
+      color: #f8fafc;
+      font-weight: 500;
+    }
+
+    .leaderboard-table td strong {
+      color: #4ade80;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .rank-cell {
+      font-weight: bold;
+      font-size: 18px !important;
+      width: 60px;
+    }
+
+    /* --- LAYOUT STRUCTURE --- */
+    .bracket-board {
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      gap: var(--gap-size);
+      min-width: max-content;
+      min-height: 800px;
+    }
+
+    .half-bracket {
+      display: flex;
+      align-items: stretch;
+      gap: var(--gap-size);
+    }
+
+    .right-bracket {
+      flex-direction: row-reverse;
+    }
+
+    .round-column {
+      display: flex;
+      flex-direction: column;
+      width: 190px;
+    }
+
+    .final-column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 0 10px;
+    }
+
+    .match-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+    }
+
+    /* --- MATCH CARDS & INPUTS --- */
+    .match-card {
+      background-color: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+      position: relative;
+      z-index: 2;
+      transition: transform 0.2s ease, background-color 0.2s ease;
+    }
+
+    .match-card:hover {
+      background-color: rgba(30, 41, 59, 0.8);
+      transform: translateY(-2px);
+    }
+
+    .team-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .team-row:first-child {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .team-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 125px;
+    }
+
+    .score-input {
+      width: 28px;
+      height: 28px;
+      background-color: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      text-align: center;
+      border-radius: 2px;
+      padding: 0;
+      font-weight: 700;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .score-input:focus {
+      outline: none;
+      border: 2px solid #fbbf24;
+      background-color: #000000;
+    }
+
+    .score-input:disabled {
+      background-color: transparent;
+      border-color: transparent;
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* --- CHAMPION STYLING --- */
+    .champion-box {
+      background: linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(0, 0, 0, 0.6));
+      border: 2px solid #eab308;
+      border-radius: 6px;
+      padding: 20px 40px;
+      margin-bottom: 50px;
+      box-shadow: 0 0 25px rgba(234, 179, 8, 0.2);
+      text-align: center;
+      min-width: 180px;
+    }
+
+    .champion-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #fde047;
+      letter-spacing: 3px;
+      margin-bottom: 8px;
+      font-weight: 800;
+    }
+
+    .champion-name {
+      font-size: 26px;
+      font-weight: 900;
+      color: #ffffff;
+      text-transform: uppercase;
+    }
+
+    .final-match-container {
+      text-align: center;
+    }
+
+    .final-match-container h2 {
+      background: linear-gradient(to bottom, #fde047, #ca8a04);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 20px;
+      font-size: 28px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .third-place-container {
+      margin-top: 50px;
+      text-align: center;
+    }
+
+    .third-place-container h3 {
+      color: #94a3b8;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 15px;
+    }
+
+    /* --- CONNECTING LINES --- */
+    .match-wrapper::before,
+    .match-wrapper::after {
+      z-index: 1;
+    }
+
+    .left-bracket .round-column:not(:last-child) .match-wrapper:nth-child(odd)::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: calc(var(--line-width) * -1);
+      width: var(--line-width);
+      height: 50%;
+      border-top: var(--line-thick) solid var(--line-color);
+      border-right: var(--line-thick) solid var(--line-color);
+      border-top-right-radius: 4px;
+    }
+
+    .left-bracket .round-column:not(:last-child) .match-wrapper:nth-child(even)::after {
+      content: '';
+      position: absolute;
+      bottom: 50%;
+      right: calc(var(--line-width) * -1);
+      width: var(--line-width);
+      height: 50%;
+      border-bottom: var(--line-thick) solid var(--line-color);
+      border-right: var(--line-thick) solid var(--line-color);
+      border-bottom-right-radius: 4px;
+    }
+
+    .left-bracket .round-column:not(:first-child) .match-wrapper::before {
+      content: '';
+      position: absolute;
+      top: calc(50% - 1px);
+      left: calc(var(--line-width) * -1);
+      width: var(--line-width);
+      border-top: var(--line-thick) solid var(--line-color);
+    }
+
+    .left-bracket .round-column:last-child .match-wrapper::after {
+      content: '';
+      position: absolute;
+      top: calc(50% - 1px);
+      right: calc(var(--line-width) * -1);
+      width: var(--line-width);
+      border-top: var(--line-thick) solid var(--line-color);
+    }
+
+    .right-bracket .round-column:not(:last-child) .match-wrapper:nth-child(odd)::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: calc(var(--line-width) * -1);
+      width: var(--line-width);
+      height: 50%;
+      border-top: var(--line-thick) solid var(--line-color);
+      border-left: var(--line-thick) solid var(--line-color);
+      border-top-left-radius: 4px;
+    }
+
+    .right-bracket .round-column:not(:last-child) .match-wrapper:nth-child(even)::after {
+      content: '';
+      position: absolute;
+      bottom: 50%;
+      left: calc(var(--line-width) * -1);
+      width: var(--line-width);
+      height: 50%;
+      border-bottom: var(--line-thick) solid var(--line-color);
+      border-left: var(--line-thick) solid var(--line-color);
+      border-bottom-left-radius: 4px;
+    }
+
+    .right-bracket .round-column:not(:first-child) .match-wrapper::before {
+      content: '';
+      position: absolute;
+      top: calc(50% - 1px);
+      right: calc(var(--line-width) * -1);
+      width: var(--line-width);
+      border-top: var(--line-thick) solid var(--line-color);
+    }
+
+    .right-bracket .round-column:last-child .match-wrapper::after {
+      content: '';
+      position: absolute;
+      top: calc(50% - 1px);
+      left: calc(var(--line-width) * -1);
+      width: var(--line-width);
+      border-top: var(--line-thick) solid var(--line-color);
+    }
+
+    .final-match-container .match-wrapper::before {
+      content: '';
+      position: absolute;
+      top: calc(50% - 1px);
+      left: calc(var(--line-width) * -1);
+      width: var(--line-width);
+      border-top: var(--line-thick) solid var(--line-color);
+    }
+
+    .final-match-container .match-wrapper::after {
+      content: '';
+      position: absolute;
+      top: calc(50% - 1px);
+      right: calc(var(--line-width) * -1);
+      width: var(--line-width);
+      border-top: var(--line-thick) solid var(--line-color);
+    }
+
+    /* --- RESPONSIVE ADJUSTMENTS --- */
+    @media (max-width: 1200px) {
+      .round-column {
+        width: 160px;
+      }
+
+      .team-name {
+        max-width: 100px;
+        font-size: 13px;
+      }
+
+      .champion-box {
+        min-width: 150px;
+        padding: 15px 20px;
+      }
+
+      .champion-name {
+        font-size: 20px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      :root {
+        --gap-size: 16px;
+        --line-width: 8px;
+      }
+
+      body {
+        padding: 20px 15px;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      h1 {
+        font-size: 1.8rem;
+        margin-bottom: 20px;
+      }
+
+      .bracket-board {
+        justify-content: flex-start;
+        padding-bottom: 30px;
+        min-height: 600px;
+      }
+
+      .round-column {
+        width: 140px;
+      }
+
+      .match-card {
+        border-radius: 6px;
+      }
+
+      .team-row {
+        padding: 8px 10px;
+        font-size: 12px;
+      }
+
+      .team-name {
+        max-width: 80px;
+      }
+
+      .score-input {
+        width: 24px;
+        height: 24px;
+        font-size: 12px;
+      }
+
+      .final-match-container h2 {
+        font-size: 20px;
+        margin-bottom: 15px;
+      }
+
+      .user-manager {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .data-controls {
+        flex-direction: column;
+        width: 100%;
+      }
+
+      .data-controls .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script>
+    const publicData = { "officialResults": { "roundOf32": [{ "id": "r32_1", "team1": "Germany", "team2": "Paraguay", "score1": "1", "score2": "2", "nextMatchId": "r16_1", "nextSlot": "team1" }, { "id": "r32_2", "team1": "France", "team2": "Sweden", "score1": "", "score2": "", "nextMatchId": "r16_1", "nextSlot": "team2" }, { "id": "r32_3", "team1": "South Africa", "team2": "Canada", "score1": "0", "score2": 1, "nextMatchId": "r16_2", "nextSlot": "team1" }, { "id": "r32_4", "team1": "Netherlands", "team2": "Morocco", "score1": "1", "score2": "2", "nextMatchId": "r16_2", "nextSlot": "team2" }, { "id": "r32_5", "team1": "Portugal", "team2": "Croatia", "score1": "", "score2": "", "nextMatchId": "r16_3", "nextSlot": "team1" }, { "id": "r32_6", "team1": "Spain", "team2": "Austria", "score1": "", "score2": "", "nextMatchId": "r16_3", "nextSlot": "team2" }, { "id": "r32_7", "team1": "USA", "team2": "Bosnia and Herz.", "score1": "", "score2": "", "nextMatchId": "r16_4", "nextSlot": "team1" }, { "id": "r32_8", "team1": "Belgium", "team2": "Senegal", "score1": "", "score2": "", "nextMatchId": "r16_4", "nextSlot": "team2" }, { "id": "r32_9", "team1": "Brazil", "team2": "Japan", "score1": "2", "score2": "1", "nextMatchId": "r16_5", "nextSlot": "team1" }, { "id": "r32_10", "team1": "Ivory Coast", "team2": "Norway", "score1": "", "score2": "", "nextMatchId": "r16_5", "nextSlot": "team2" }, { "id": "r32_11", "team1": "Mexico", "team2": "Ecuador", "score1": "", "score2": "", "nextMatchId": "r16_6", "nextSlot": "team1" }, { "id": "r32_12", "team1": "England", "team2": "Congo DR", "score1": "", "score2": "", "nextMatchId": "r16_6", "nextSlot": "team2" }, { "id": "r32_13", "team1": "Argentina", "team2": "Cape Verde", "score1": "", "score2": "", "nextMatchId": "r16_7", "nextSlot": "team1" }, { "id": "r32_14", "team1": "Australia", "team2": "Egypt", "score1": "", "score2": "", "nextMatchId": "r16_7", "nextSlot": "team2" }, { "id": "r32_15", "team1": "Switzerland", "team2": "Algeria", "score1": "", "score2": "", "nextMatchId": "r16_8", "nextSlot": "team1" }, { "id": "r32_16", "team1": "Colombia", "team2": "Ghana", "score1": "", "score2": "", "nextMatchId": "r16_8", "nextSlot": "team2" }], "roundOf16": [{ "id": "r16_1", "team1": "Paraguay", "team2": "", "score1": "", "score2": "", "nextMatchId": "qf_1", "nextSlot": "team1" }, { "id": "r16_2", "team1": "Canada", "team2": "Morocco", "score1": "", "score2": "", "nextMatchId": "qf_1", "nextSlot": "team2" }, { "id": "r16_3", "team1": "", "team2": "", "score1": "", "score2": "", "nextMatchId": "qf_2", "nextSlot": "team1" }, { "id": "r16_4", "team1": "", "team2": "", "score1": "", "score2": "", "nextMatchId": "qf_2", "nextSlot": "team2" }, { "id": "r16_5", "team1": "Brazil", "team2": "", "score1": "", "score2": "", "nextMatchId": "qf_3", "nextSlot": "team1" }, { "id": "r16_6", "team1": "", "team2": "", "score1": "", "score2": "", "nextMatchId": "qf_3", "nextSlot": "team2" }, { "id": "r16_7", "team1": "", "team2": "", "score1": "", "score2": "", "nextMatchId": "qf_4", "nextSlot": "team1" }, { "id": "r16_8", "team1": "", "team2": "", "score1": "", "score2": "", "nextMatchId": "qf_4", "nextSlot": "team2" }], "quarterFinals": [{ "id": "qf_1", "team1": "", "team2": "", "score1": "", "score2": "", "nextMatchId": "sf_1", "nextSlot": "team1" }, { "id": "qf_2", "team1": "", "team2": "", "score1": "", "score2": "", "nextMatchId": "sf_1", "nextSlot": "team2" }, { "id": "qf_3", "team1": "", "team2": "", "score1": "", "score2": "", "nextMatchId": "sf_2", "nextSlot": "team1" }, { "id": "qf_4", "team1": "", "team2": "", "score1": "", "score2": "", "nextMatchId": "sf_2", "nextSlot": "team2" }], "semiFinals": [{ "id": "sf_1", "team1": "", "team2": "", "score1": "", "score2": "", "nextMatchId": "final_1", "nextSlot": "team1", "loserMatchId": "tp_1", "loserSlot": "team1" }, { "id": "sf_2", "team1": "", "team2": "", "score1": "", "score2": "", "nextMatchId": "final_1", "nextSlot": "team2", "loserMatchId": "tp_1", "loserSlot": "team2" }], "final": [{ "id": "final_1", "team1": "", "team2": "", "score1": "", "score2": "", "nextMatchId": "champ", "nextSlot": null }], "thirdPlace": [{ "id": "tp_1", "team1": "", "team2": "", "score1": "", "score2": "", "nextMatchId": null, "nextSlot": null }], "champion": "" }, "users": [{ "id": "1782777734770", "name": "Carlos", "bracket": { "roundOf32": [{ "id": "r32_1", "team1": "Germany", "team2": "Paraguay", "score1": "4", "score2": "0", "nextMatchId": "r16_1", "nextSlot": "team1" }, { "id": "r32_2", "team1": "France", "team2": "Sweden", "score1": "3", "score2": "1", "nextMatchId": "r16_1", "nextSlot": "team2" }, { "id": "r32_3", "team1": "South Africa", "team2": "Canada", "score1": "0", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team1" }, { "id": "r32_4", "team1": "Netherlands", "team2": "Morocco", "score1": "3", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team2" }, { "id": "r32_5", "team1": "Portugal", "team2": "Croatia", "score1": "1", "score2": "3", "nextMatchId": "r16_3", "nextSlot": "team1" }, { "id": "r32_6", "team1": "Spain", "team2": "Austria", "score1": "4", "score2": "1", "nextMatchId": "r16_3", "nextSlot": "team2" }, { "id": "r32_7", "team1": "USA", "team2": "Bosnia and Herz.", "score1": "3", "score2": "1", "nextMatchId": "r16_4", "nextSlot": "team1" }, { "id": "r32_8", "team1": "Belgium", "team2": "Senegal", "score1": "1", "score2": "2", "nextMatchId": "r16_4", "nextSlot": "team2" }, { "id": "r32_9", "team1": "Brazil", "team2": "Japan", "score1": "3", "score2": "2", "nextMatchId": "r16_5", "nextSlot": "team1" }, { "id": "r32_10", "team1": "Ivory Coast", "team2": "Norway", "score1": "1", "score2": "3", "nextMatchId": "r16_5", "nextSlot": "team2" }, { "id": "r32_11", "team1": "Mexico", "team2": "Ecuador", "score1": "3", "score2": "2", "nextMatchId": "r16_6", "nextSlot": "team1" }, { "id": "r32_12", "team1": "England", "team2": "Congo DR", "score1": "4", "score2": "2", "nextMatchId": "r16_6", "nextSlot": "team2" }, { "id": "r32_13", "team1": "Argentina", "team2": "Cape Verde", "score1": "3", "score2": "1", "nextMatchId": "r16_7", "nextSlot": "team1" }, { "id": "r32_14", "team1": "Australia", "team2": "Egypt", "score1": "1", "score2": "2", "nextMatchId": "r16_7", "nextSlot": "team2" }, { "id": "r32_15", "team1": "Switzerland", "team2": "Algeria", "score1": "2", "score2": "1", "nextMatchId": "r16_8", "nextSlot": "team1" }, { "id": "r32_16", "team1": "Colombia", "team2": "Ghana", "score1": "3", "score2": "2", "nextMatchId": "r16_8", "nextSlot": "team2" }], "roundOf16": [{ "id": "r16_1", "team1": "Germany", "team2": "France", "score1": "4", "score2": "3", "nextMatchId": "qf_1", "nextSlot": "team1" }, { "id": "r16_2", "team1": "Canada", "team2": "Netherlands", "score1": "1", "score2": "4", "nextMatchId": "qf_1", "nextSlot": "team2" }, { "id": "r16_3", "team1": "Croatia", "team2": "Spain", "score1": "2", "score2": "3", "nextMatchId": "qf_2", "nextSlot": "team1" }, { "id": "r16_4", "team1": "USA", "team2": "Senegal", "score1": "1", "score2": "2", "nextMatchId": "qf_2", "nextSlot": "team2" }, { "id": "r16_5", "team1": "Brazil", "team2": "Norway", "score1": "4", "score2": "2", "nextMatchId": "qf_3", "nextSlot": "team1" }, { "id": "r16_6", "team1": "Mexico", "team2": "England", "score1": "3", "score2": "2", "nextMatchId": "qf_3", "nextSlot": "team2" }, { "id": "r16_7", "team1": "Argentina", "team2": "Egypt", "score1": "4", "score2": "1", "nextMatchId": "qf_4", "nextSlot": "team1" }, { "id": "r16_8", "team1": "Switzerland", "team2": "Colombia", "score1": "1", "score2": "2", "nextMatchId": "qf_4", "nextSlot": "team2" }], "quarterFinals": [{ "id": "qf_1", "team1": "Germany", "team2": "Netherlands", "score1": "2", "score2": "3", "nextMatchId": "sf_1", "nextSlot": "team1" }, { "id": "qf_2", "team1": "Spain", "team2": "Senegal", "score1": "4", "score2": "0", "nextMatchId": "sf_1", "nextSlot": "team2" }, { "id": "qf_3", "team1": "Brazil", "team2": "Mexico", "score1": "3", "score2": "2", "nextMatchId": "sf_2", "nextSlot": "team1" }, { "id": "qf_4", "team1": "Argentina", "team2": "Colombia", "score1": "3", "score2": "1", "nextMatchId": "sf_2", "nextSlot": "team2" }], "semiFinals": [{ "id": "sf_1", "team1": "Netherlands", "team2": "Spain", "score1": "2", "score2": "3", "nextMatchId": "final_1", "nextSlot": "team1", "loserMatchId": "tp_1", "loserSlot": "team1" }, { "id": "sf_2", "team1": "Brazil", "team2": "Argentina", "score1": "2", "score2": "4", "nextMatchId": "final_1", "nextSlot": "team2", "loserMatchId": "tp_1", "loserSlot": "team2" }], "final": [{ "id": "final_1", "team1": "Spain", "team2": "Argentina", "score1": "2", "score2": "3", "nextMatchId": "champ", "nextSlot": null }], "thirdPlace": [{ "id": "tp_1", "team1": "Netherlands", "team2": "Brazil", "score1": "3", "score2": "2", "nextMatchId": null, "nextSlot": null }], "champion": "Argentina" } }, { "id": "1782778549383", "name": "Christian", "bracket": { "roundOf32": [{ "id": "r32_1", "team1": "Germany", "team2": "Paraguay", "score1": "3", "score2": "1", "nextMatchId": "r16_1", "nextSlot": "team1" }, { "id": "r32_2", "team1": "France", "team2": "Sweden", "score1": "2", "score2": "0", "nextMatchId": "r16_1", "nextSlot": "team2" }, { "id": "r32_3", "team1": "South Africa", "team2": "Canada", "score1": "0", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team1" }, { "id": "r32_4", "team1": "Netherlands", "team2": "Morocco", "score1": "2", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team2" }, { "id": "r32_5", "team1": "Portugal", "team2": "Croatia", "score1": "1", "score2": "0", "nextMatchId": "r16_3", "nextSlot": "team1" }, { "id": "r32_6", "team1": "Spain", "team2": "Austria", "score1": "3", "score2": "1", "nextMatchId": "r16_3", "nextSlot": "team2" }, { "id": "r32_7", "team1": "USA", "team2": "Bosnia and Herz.", "score1": "2", "score2": "1", "nextMatchId": "r16_4", "nextSlot": "team1" }, { "id": "r32_8", "team1": "Belgium", "team2": "Senegal", "score1": "2", "score2": "0", "nextMatchId": "r16_4", "nextSlot": "team2" }, { "id": "r32_9", "team1": "Brazil", "team2": "Japan", "score1": "2", "score2": "1", "nextMatchId": "r16_5", "nextSlot": "team1" }, { "id": "r32_10", "team1": "Ivory Coast", "team2": "Norway", "score1": "2", "score2": "1", "nextMatchId": "r16_5", "nextSlot": "team2" }, { "id": "r32_11", "team1": "Mexico", "team2": "Ecuador", "score1": "2", "score2": "1", "nextMatchId": "r16_6", "nextSlot": "team1" }, { "id": "r32_12", "team1": "England", "team2": "Congo DR", "score1": "3", "score2": "0", "nextMatchId": "r16_6", "nextSlot": "team2" }, { "id": "r32_13", "team1": "Argentina", "team2": "Cape Verde", "score1": "4", "score2": "0", "nextMatchId": "r16_7", "nextSlot": "team1" }, { "id": "r32_14", "team1": "Australia", "team2": "Egypt", "score1": "1", "score2": "2", "nextMatchId": "r16_7", "nextSlot": "team2" }, { "id": "r32_15", "team1": "Switzerland", "team2": "Algeria", "score1": "1", "score2": "0", "nextMatchId": "r16_8", "nextSlot": "team1" }, { "id": "r32_16", "team1": "Colombia", "team2": "Ghana", "score1": "2", "score2": "0", "nextMatchId": "r16_8", "nextSlot": "team2" }], "roundOf16": [{ "id": "r16_1", "team1": "Germany", "team2": "France", "score1": "1", "score2": "2", "nextMatchId": "qf_1", "nextSlot": "team1" }, { "id": "r16_2", "team1": "Canada", "team2": "Netherlands", "score1": "0", "score2": "2", "nextMatchId": "qf_1", "nextSlot": "team2" }, { "id": "r16_3", "team1": "Portugal", "team2": "Spain", "score1": "1", "score2": "2", "nextMatchId": "qf_2", "nextSlot": "team1" }, { "id": "r16_4", "team1": "USA", "team2": "Belgium", "score1": "2", "score2": "1", "nextMatchId": "qf_2", "nextSlot": "team2" }, { "id": "r16_5", "team1": "Brazil", "team2": "Ivory Coast", "score1": "3", "score2": "1", "nextMatchId": "qf_3", "nextSlot": "team1" }, { "id": "r16_6", "team1": "Mexico", "team2": "England", "score1": "1", "score2": "2", "nextMatchId": "qf_3", "nextSlot": "team2" }, { "id": "r16_7", "team1": "Argentina", "team2": "Egypt", "score1": "2", "score2": "0", "nextMatchId": "qf_4", "nextSlot": "team1" }, { "id": "r16_8", "team1": "Switzerland", "team2": "Colombia", "score1": "1", "score2": "2", "nextMatchId": "qf_4", "nextSlot": "team2" }], "quarterFinals": [{ "id": "qf_1", "team1": "France", "team2": "Netherlands", "score1": "2", "score2": "1", "nextMatchId": "sf_1", "nextSlot": "team1" }, { "id": "qf_2", "team1": "Spain", "team2": "USA", "score1": "3", "score2": "0", "nextMatchId": "sf_1", "nextSlot": "team2" }, { "id": "qf_3", "team1": "Brazil", "team2": "England", "score1": "1", "score2": "2", "nextMatchId": "sf_2", "nextSlot": "team1" }, { "id": "qf_4", "team1": "Argentina", "team2": "Colombia", "score1": "2", "score2": "1", "nextMatchId": "sf_2", "nextSlot": "team2" }], "semiFinals": [{ "id": "sf_1", "team1": "France", "team2": "Spain", "score1": "1", "score2": "2", "nextMatchId": "final_1", "nextSlot": "team1", "loserMatchId": "tp_1", "loserSlot": "team1" }, { "id": "sf_2", "team1": "England", "team2": "Argentina", "score1": "2", "score2": "1", "nextMatchId": "final_1", "nextSlot": "team2", "loserMatchId": "tp_1", "loserSlot": "team2" }], "final": [{ "id": "final_1", "team1": "Spain", "team2": "England", "score1": "2", "score2": "1", "nextMatchId": "champ", "nextSlot": null }], "thirdPlace": [{ "id": "tp_1", "team1": "France", "team2": "Argentina", "score1": "3", "score2": "2", "nextMatchId": null, "nextSlot": null }], "champion": "Spain" } }, { "id": "1782779069308", "name": "Cindy", "bracket": { "roundOf32": [{ "id": "r32_1", "team1": "Germany", "team2": "Paraguay", "score1": "2", "score2": "0", "nextMatchId": "r16_1", "nextSlot": "team1" }, { "id": "r32_2", "team1": "France", "team2": "Sweden", "score1": "3", "score2": "1", "nextMatchId": "r16_1", "nextSlot": "team2" }, { "id": "r32_3", "team1": "South Africa", "team2": "Canada", "score1": "0", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team1" }, { "id": "r32_4", "team1": "Netherlands", "team2": "Morocco", "score1": "2", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team2" }, { "id": "r32_5", "team1": "Portugal", "team2": "Croatia", "score1": "2", "score2": "3", "nextMatchId": "r16_3", "nextSlot": "team1" }, { "id": "r32_6", "team1": "Spain", "team2": "Austria", "score1": "2", "score2": "0", "nextMatchId": "r16_3", "nextSlot": "team2" }, { "id": "r32_7", "team1": "USA", "team2": "Bosnia and Herz.", "score1": "1", "score2": "0", "nextMatchId": "r16_4", "nextSlot": "team1" }, { "id": "r32_8", "team1": "Belgium", "team2": "Senegal", "score1": "2", "score2": "1", "nextMatchId": "r16_4", "nextSlot": "team2" }, { "id": "r32_9", "team1": "Brazil", "team2": "Japan", "score1": "2", "score2": "1", "nextMatchId": "r16_5", "nextSlot": "team1" }, { "id": "r32_10", "team1": "Ivory Coast", "team2": "Norway", "score1": "1", "score2": "3", "nextMatchId": "r16_5", "nextSlot": "team2" }, { "id": "r32_11", "team1": "Mexico", "team2": "Ecuador", "score1": "1", "score2": "0", "nextMatchId": "r16_6", "nextSlot": "team1" }, { "id": "r32_12", "team1": "England", "team2": "Congo DR", "score1": "3", "score2": "0", "nextMatchId": "r16_6", "nextSlot": "team2" }, { "id": "r32_13", "team1": "Argentina", "team2": "Cape Verde", "score1": "3", "score2": "0", "nextMatchId": "r16_7", "nextSlot": "team1" }, { "id": "r32_14", "team1": "Australia", "team2": "Egypt", "score1": "1", "score2": "2", "nextMatchId": "r16_7", "nextSlot": "team2" }, { "id": "r32_15", "team1": "Switzerland", "team2": "Algeria", "score1": "3", "score2": "2", "nextMatchId": "r16_8", "nextSlot": "team1" }, { "id": "r32_16", "team1": "Colombia", "team2": "Ghana", "score1": "2", "score2": "1", "nextMatchId": "r16_8", "nextSlot": "team2" }], "roundOf16": [{ "id": "r16_1", "team1": "Germany", "team2": "France", "score1": "2", "score2": "4", "nextMatchId": "qf_1", "nextSlot": "team1" }, { "id": "r16_2", "team1": "Canada", "team2": "Netherlands", "score1": "1", "score2": "3", "nextMatchId": "qf_1", "nextSlot": "team2" }, { "id": "r16_3", "team1": "Croatia", "team2": "Spain", "score1": "1", "score2": "2", "nextMatchId": "qf_2", "nextSlot": "team1" }, { "id": "r16_4", "team1": "USA", "team2": "Belgium", "score1": "1", "score2": "2", "nextMatchId": "qf_2", "nextSlot": "team2" }, { "id": "r16_5", "team1": "Brazil", "team2": "Norway", "score1": "1", "score2": "2", "nextMatchId": "qf_3", "nextSlot": "team1" }, { "id": "r16_6", "team1": "Mexico", "team2": "England", "score1": "1", "score2": "2", "nextMatchId": "qf_3", "nextSlot": "team2" }, { "id": "r16_7", "team1": "Argentina", "team2": "Egypt", "score1": "3", "score2": "0", "nextMatchId": "qf_4", "nextSlot": "team1" }, { "id": "r16_8", "team1": "Switzerland", "team2": "Colombia", "score1": "1", "score2": "2", "nextMatchId": "qf_4", "nextSlot": "team2" }], "quarterFinals": [{ "id": "qf_1", "team1": "France", "team2": "Netherlands", "score1": "0", "score2": "1", "nextMatchId": "sf_1", "nextSlot": "team1" }, { "id": "qf_2", "team1": "Spain", "team2": "Belgium", "score1": "2", "score2": "0", "nextMatchId": "sf_1", "nextSlot": "team2" }, { "id": "qf_3", "team1": "Norway", "team2": "England", "score1": "1", "score2": "2", "nextMatchId": "sf_2", "nextSlot": "team1" }, { "id": "qf_4", "team1": "Argentina", "team2": "Colombia", "score1": "2", "score2": "1", "nextMatchId": "sf_2", "nextSlot": "team2" }], "semiFinals": [{ "id": "sf_1", "team1": "Netherlands", "team2": "Spain", "score1": "2", "score2": "1", "nextMatchId": "final_1", "nextSlot": "team1", "loserMatchId": "tp_1", "loserSlot": "team1" }, { "id": "sf_2", "team1": "England", "team2": "Argentina", "score1": "1", "score2": "2", "nextMatchId": "final_1", "nextSlot": "team2", "loserMatchId": "tp_1", "loserSlot": "team2" }], "final": [{ "id": "final_1", "team1": "Netherlands", "team2": "Argentina", "score1": "3", "score2": "2", "nextMatchId": "champ", "nextSlot": null }], "thirdPlace": [{ "id": "tp_1", "team1": "Spain", "team2": "England", "score1": "3", "score2": "1", "nextMatchId": null, "nextSlot": null }], "champion": "Netherlands" } }, { "id": "1782779529904", "name": "Falilou", "bracket": { "roundOf32": [{ "id": "r32_1", "team1": "Germany", "team2": "Paraguay", "score1": "4", "score2": "1", "nextMatchId": "r16_1", "nextSlot": "team1" }, { "id": "r32_2", "team1": "France", "team2": "Sweden", "score1": "3", "score2": "1", "nextMatchId": "r16_1", "nextSlot": "team2" }, { "id": "r32_3", "team1": "South Africa", "team2": "Canada", "score1": "0", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team1" }, { "id": "r32_4", "team1": "Netherlands", "team2": "Morocco", "score1": "0", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team2" }, { "id": "r32_5", "team1": "Portugal", "team2": "Croatia", "score1": "1", "score2": "0", "nextMatchId": "r16_3", "nextSlot": "team1" }, { "id": "r32_6", "team1": "Spain", "team2": "Austria", "score1": "2", "score2": "1", "nextMatchId": "r16_3", "nextSlot": "team2" }, { "id": "r32_7", "team1": "USA", "team2": "Bosnia and Herz.", "score1": "3", "score2": "0", "nextMatchId": "r16_4", "nextSlot": "team1" }, { "id": "r32_8", "team1": "Belgium", "team2": "Senegal", "score1": "1", "score2": "2", "nextMatchId": "r16_4", "nextSlot": "team2" }, { "id": "r32_9", "team1": "Brazil", "team2": "Japan", "score1": "1", "score2": "2", "nextMatchId": "r16_5", "nextSlot": "team1" }, { "id": "r32_10", "team1": "Ivory Coast", "team2": "Norway", "score1": "0", "score2": "2", "nextMatchId": "r16_5", "nextSlot": "team2" }, { "id": "r32_11", "team1": "Mexico", "team2": "Ecuador", "score1": "1", "score2": "0", "nextMatchId": "r16_6", "nextSlot": "team1" }, { "id": "r32_12", "team1": "England", "team2": "Congo DR", "score1": "3", "score2": "1", "nextMatchId": "r16_6", "nextSlot": "team2" }, { "id": "r32_13", "team1": "Argentina", "team2": "Cape Verde", "score1": "3", "score2": "1", "nextMatchId": "r16_7", "nextSlot": "team1" }, { "id": "r32_14", "team1": "Australia", "team2": "Egypt", "score1": "0", "score2": "1", "nextMatchId": "r16_7", "nextSlot": "team2" }, { "id": "r32_15", "team1": "Switzerland", "team2": "Algeria", "score1": "0", "score2": "1", "nextMatchId": "r16_8", "nextSlot": "team1" }, { "id": "r32_16", "team1": "Colombia", "team2": "Ghana", "score1": "1", "score2": "0", "nextMatchId": "r16_8", "nextSlot": "team2" }], "roundOf16": [{ "id": "r16_1", "team1": "Germany", "team2": "France", "score1": "1", "score2": "2", "nextMatchId": "qf_1", "nextSlot": "team1" }, { "id": "r16_2", "team1": "Canada", "team2": "Morocco", "score1": "1", "score2": "2", "nextMatchId": "qf_1", "nextSlot": "team2" }, { "id": "r16_3", "team1": "Portugal", "team2": "Spain", "score1": "2", "score2": "1", "nextMatchId": "qf_2", "nextSlot": "team1" }, { "id": "r16_4", "team1": "USA", "team2": "Senegal", "score1": "1", "score2": "2", "nextMatchId": "qf_2", "nextSlot": "team2" }, { "id": "r16_5", "team1": "Japan", "team2": "Norway", "score1": "1", "score2": "0", "nextMatchId": "qf_3", "nextSlot": "team1" }, { "id": "r16_6", "team1": "Mexico", "team2": "England", "score1": "0", "score2": "2", "nextMatchId": "qf_3", "nextSlot": "team2" }, { "id": "r16_7", "team1": "Argentina", "team2": "Egypt", "score1": "2", "score2": "0", "nextMatchId": "qf_4", "nextSlot": "team1" }, { "id": "r16_8", "team1": "Algeria", "team2": "Colombia", "score1": "0", "score2": "1", "nextMatchId": "qf_4", "nextSlot": "team2" }], "quarterFinals": [{ "id": "qf_1", "team1": "France", "team2": "Morocco", "score1": "2", "score2": "1", "nextMatchId": "sf_1", "nextSlot": "team1" }, { "id": "qf_2", "team1": "Portugal", "team2": "Senegal", "score1": "2", "score2": "1", "nextMatchId": "sf_1", "nextSlot": "team2" }, { "id": "qf_3", "team1": "Japan", "team2": "England", "score1": "0", "score2": "2", "nextMatchId": "sf_2", "nextSlot": "team1" }, { "id": "qf_4", "team1": "Argentina", "team2": "Colombia", "score1": "2", "score2": "1", "nextMatchId": "sf_2", "nextSlot": "team2" }], "semiFinals": [{ "id": "sf_1", "team1": "France", "team2": "Portugal", "score1": "2", "score2": "3", "nextMatchId": "final_1", "nextSlot": "team1", "loserMatchId": "tp_1", "loserSlot": "team1" }, { "id": "sf_2", "team1": "England", "team2": "Argentina", "score1": "1", "score2": "2", "nextMatchId": "final_1", "nextSlot": "team2", "loserMatchId": "tp_1", "loserSlot": "team2" }], "final": [{ "id": "final_1", "team1": "Portugal", "team2": "Argentina", "score1": "2", "score2": "1", "nextMatchId": "champ", "nextSlot": null }], "thirdPlace": [{ "id": "tp_1", "team1": "France", "team2": "England", "score1": "1", "score2": "0", "nextMatchId": null, "nextSlot": null }], "champion": "Portugal" } }, { "id": "1782780498440", "name": "Hossein", "bracket": { "roundOf32": [{ "id": "r32_1", "team1": "Germany", "team2": "Paraguay", "score1": "3", "score2": "1", "nextMatchId": "r16_1", "nextSlot": "team1" }, { "id": "r32_2", "team1": "France", "team2": "Sweden", "score1": "4", "score2": "1", "nextMatchId": "r16_1", "nextSlot": "team2" }, { "id": "r32_3", "team1": "South Africa", "team2": "Canada", "score1": "0", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team1" }, { "id": "r32_4", "team1": "Netherlands", "team2": "Morocco", "score1": "2", "score2": "0", "nextMatchId": "r16_2", "nextSlot": "team2" }, { "id": "r32_5", "team1": "Portugal", "team2": "Croatia", "score1": "2", "score2": "1", "nextMatchId": "r16_3", "nextSlot": "team1" }, { "id": "r32_6", "team1": "Spain", "team2": "Austria", "score1": "2", "score2": "0", "nextMatchId": "r16_3", "nextSlot": "team2" }, { "id": "r32_7", "team1": "USA", "team2": "Bosnia and Herz.", "score1": "2", "score2": "1", "nextMatchId": "r16_4", "nextSlot": "team1" }, { "id": "r32_8", "team1": "Belgium", "team2": "Senegal", "score1": "2", "score2": "1", "nextMatchId": "r16_4", "nextSlot": "team2" }, { "id": "r32_9", "team1": "Brazil", "team2": "Japan", "score1": "3", "score2": "2", "nextMatchId": "r16_5", "nextSlot": "team1" }, { "id": "r32_10", "team1": "Ivory Coast", "team2": "Norway", "score1": "2", "score2": "3", "nextMatchId": "r16_5", "nextSlot": "team2" }, { "id": "r32_11", "team1": "Mexico", "team2": "Ecuador", "score1": "2", "score2": "1", "nextMatchId": "r16_6", "nextSlot": "team1" }, { "id": "r32_12", "team1": "England", "team2": "Congo DR", "score1": "4", "score2": "1", "nextMatchId": "r16_6", "nextSlot": "team2" }, { "id": "r32_13", "team1": "Argentina", "team2": "Cape Verde", "score1": "3", "score2": "0", "nextMatchId": "r16_7", "nextSlot": "team1" }, { "id": "r32_14", "team1": "Australia", "team2": "Egypt", "score1": "2", "score2": "0", "nextMatchId": "r16_7", "nextSlot": "team2" }, { "id": "r32_15", "team1": "Switzerland", "team2": "Algeria", "score1": "1", "score2": "2", "nextMatchId": "r16_8", "nextSlot": "team1" }, { "id": "r32_16", "team1": "Colombia", "team2": "Ghana", "score1": "3", "score2": "2", "nextMatchId": "r16_8", "nextSlot": "team2" }], "roundOf16": [{ "id": "r16_1", "team1": "Germany", "team2": "France", "score1": "1", "score2": "2", "nextMatchId": "qf_1", "nextSlot": "team1" }, { "id": "r16_2", "team1": "Canada", "team2": "Netherlands", "score1": "0", "score2": "2", "nextMatchId": "qf_1", "nextSlot": "team2" }, { "id": "r16_3", "team1": "Portugal", "team2": "Spain", "score1": "2", "score2": "1", "nextMatchId": "qf_2", "nextSlot": "team1" }, { "id": "r16_4", "team1": "USA", "team2": "Belgium", "score1": "2", "score2": "1", "nextMatchId": "qf_2", "nextSlot": "team2" }, { "id": "r16_5", "team1": "Brazil", "team2": "Norway", "score1": "1", "score2": "0", "nextMatchId": "qf_3", "nextSlot": "team1" }, { "id": "r16_6", "team1": "Mexico", "team2": "England", "score1": "0", "score2": "1", "nextMatchId": "qf_3", "nextSlot": "team2" }, { "id": "r16_7", "team1": "Argentina", "team2": "Australia", "score1": "1", "score2": "0", "nextMatchId": "qf_4", "nextSlot": "team1" }, { "id": "r16_8", "team1": "Algeria", "team2": "Colombia", "score1": "0", "score2": "1", "nextMatchId": "qf_4", "nextSlot": "team2" }], "quarterFinals": [{ "id": "qf_1", "team1": "France", "team2": "Netherlands", "score1": "2", "score2": "0", "nextMatchId": "sf_1", "nextSlot": "team1" }, { "id": "qf_2", "team1": "Portugal", "team2": "USA", "score1": "1", "score2": "0", "nextMatchId": "sf_1", "nextSlot": "team2" }, { "id": "qf_3", "team1": "Brazil", "team2": "England", "score1": "1", "score2": "2", "nextMatchId": "sf_2", "nextSlot": "team1" }, { "id": "qf_4", "team1": "Argentina", "team2": "Colombia", "score1": "1", "score2": "0", "nextMatchId": "sf_2", "nextSlot": "team2" }], "semiFinals": [{ "id": "sf_1", "team1": "France", "team2": "Portugal", "score1": "1", "score2": "0", "nextMatchId": "final_1", "nextSlot": "team1", "loserMatchId": "tp_1", "loserSlot": "team1" }, { "id": "sf_2", "team1": "England", "team2": "Argentina", "score1": "2", "score2": "1", "nextMatchId": "final_1", "nextSlot": "team2", "loserMatchId": "tp_1", "loserSlot": "team2" }], "final": [{ "id": "final_1", "team1": "France", "team2": "England", "score1": "2", "score2": "1", "nextMatchId": "champ", "nextSlot": null }], "thirdPlace": [{ "id": "tp_1", "team1": "Portugal", "team2": "Argentina", "score1": "2", "score2": "1", "nextMatchId": null, "nextSlot": null }], "champion": "France" } }, { "id": "1782780849303", "name": "JP", "bracket": { "roundOf32": [{ "id": "r32_1", "team1": "Germany", "team2": "Paraguay", "score1": "2", "score2": "0", "nextMatchId": "r16_1", "nextSlot": "team1" }, { "id": "r32_2", "team1": "France", "team2": "Sweden", "score1": "3", "score2": "1", "nextMatchId": "r16_1", "nextSlot": "team2" }, { "id": "r32_3", "team1": "South Africa", "team2": "Canada", "score1": "0", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team1" }, { "id": "r32_4", "team1": "Netherlands", "team2": "Morocco", "score1": "2", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team2" }, { "id": "r32_5", "team1": "Portugal", "team2": "Croatia", "score1": "2", "score2": "1", "nextMatchId": "r16_3", "nextSlot": "team1" }, { "id": "r32_6", "team1": "Spain", "team2": "Austria", "score1": "2", "score2": "0", "nextMatchId": "r16_3", "nextSlot": "team2" }, { "id": "r32_7", "team1": "USA", "team2": "Bosnia and Herz.", "score1": "3", "score2": "1", "nextMatchId": "r16_4", "nextSlot": "team1" }, { "id": "r32_8", "team1": "Belgium", "team2": "Senegal", "score1": "2", "score2": "1", "nextMatchId": "r16_4", "nextSlot": "team2" }, { "id": "r32_9", "team1": "Brazil", "team2": "Japan", "score1": "2", "score2": "1", "nextMatchId": "r16_5", "nextSlot": "team1" }, { "id": "r32_10", "team1": "Ivory Coast", "team2": "Norway", "score1": "0", "score2": "1", "nextMatchId": "r16_5", "nextSlot": "team2" }, { "id": "r32_11", "team1": "Mexico", "team2": "Ecuador", "score1": "2", "score2": "1", "nextMatchId": "r16_6", "nextSlot": "team1" }, { "id": "r32_12", "team1": "England", "team2": "Congo DR", "score1": "2", "score2": "1", "nextMatchId": "r16_6", "nextSlot": "team2" }, { "id": "r32_13", "team1": "Argentina", "team2": "Cape Verde", "score1": "3", "score2": "0", "nextMatchId": "r16_7", "nextSlot": "team1" }, { "id": "r32_14", "team1": "Australia", "team2": "Egypt", "score1": "3", "score2": "1", "nextMatchId": "r16_7", "nextSlot": "team2" }, { "id": "r32_15", "team1": "Switzerland", "team2": "Algeria", "score1": "0", "score2": "1", "nextMatchId": "r16_8", "nextSlot": "team1" }, { "id": "r32_16", "team1": "Colombia", "team2": "Ghana", "score1": "2", "score2": "1", "nextMatchId": "r16_8", "nextSlot": "team2" }], "roundOf16": [{ "id": "r16_1", "team1": "Germany", "team2": "France", "score1": "2", "score2": "1", "nextMatchId": "qf_1", "nextSlot": "team1" }, { "id": "r16_2", "team1": "Canada", "team2": "Netherlands", "score1": "0", "score2": "1", "nextMatchId": "qf_1", "nextSlot": "team2" }, { "id": "r16_3", "team1": "Portugal", "team2": "Spain", "score1": "1", "score2": "2", "nextMatchId": "qf_2", "nextSlot": "team1" }, { "id": "r16_4", "team1": "USA", "team2": "Belgium", "score1": "0", "score2": "1", "nextMatchId": "qf_2", "nextSlot": "team2" }, { "id": "r16_5", "team1": "Brazil", "team2": "Norway", "score1": "3", "score2": "0", "nextMatchId": "qf_3", "nextSlot": "team1" }, { "id": "r16_6", "team1": "Mexico", "team2": "England", "score1": "2", "score2": "1", "nextMatchId": "qf_3", "nextSlot": "team2" }, { "id": "r16_7", "team1": "Argentina", "team2": "Australia", "score1": "2", "score2": "0", "nextMatchId": "qf_4", "nextSlot": "team1" }, { "id": "r16_8", "team1": "Algeria", "team2": "Colombia", "score1": "0", "score2": "1", "nextMatchId": "qf_4", "nextSlot": "team2" }], "quarterFinals": [{ "id": "qf_1", "team1": "Germany", "team2": "Netherlands", "score1": "1", "score2": "0", "nextMatchId": "sf_1", "nextSlot": "team1" }, { "id": "qf_2", "team1": "Spain", "team2": "Belgium", "score1": "1", "score2": "0", "nextMatchId": "sf_1", "nextSlot": "team2" }, { "id": "qf_3", "team1": "Brazil", "team2": "Mexico", "score1": "0", "score2": "1", "nextMatchId": "sf_2", "nextSlot": "team1" }, { "id": "qf_4", "team1": "Argentina", "team2": "Colombia", "score1": "1", "score2": "0", "nextMatchId": "sf_2", "nextSlot": "team2" }], "semiFinals": [{ "id": "sf_1", "team1": "Germany", "team2": "Spain", "score1": "0", "score2": "1", "nextMatchId": "final_1", "nextSlot": "team1", "loserMatchId": "tp_1", "loserSlot": "team1" }, { "id": "sf_2", "team1": "Mexico", "team2": "Argentina", "score1": "1", "score2": "0", "nextMatchId": "final_1", "nextSlot": "team2", "loserMatchId": "tp_1", "loserSlot": "team2" }], "final": [{ "id": "final_1", "team1": "Spain", "team2": "Mexico", "score1": "0", "score2": "1", "nextMatchId": "champ", "nextSlot": null }], "thirdPlace": [{ "id": "tp_1", "team1": "Germany", "team2": "Argentina", "score1": "2", "score2": "1", "nextMatchId": null, "nextSlot": null }], "champion": "Mexico" } }, { "id": "1782781510378", "name": "Julia", "bracket": { "roundOf32": [{ "id": "r32_1", "team1": "Germany", "team2": "Paraguay", "score1": "2", "score2": "3", "nextMatchId": "r16_1", "nextSlot": "team1" }, { "id": "r32_2", "team1": "France", "team2": "Sweden", "score1": "2", "score2": "3", "nextMatchId": "r16_1", "nextSlot": "team2" }, { "id": "r32_3", "team1": "South Africa", "team2": "Canada", "score1": "0", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team1" }, { "id": "r32_4", "team1": "Netherlands", "team2": "Morocco", "score1": "2", "score2": "4", "nextMatchId": "r16_2", "nextSlot": "team2" }, { "id": "r32_5", "team1": "Portugal", "team2": "Croatia", "score1": "3", "score2": "2", "nextMatchId": "r16_3", "nextSlot": "team1" }, { "id": "r32_6", "team1": "Spain", "team2": "Austria", "score1": "3", "score2": "1", "nextMatchId": "r16_3", "nextSlot": "team2" }, { "id": "r32_7", "team1": "USA", "team2": "Bosnia and Herz.", "score1": "3", "score2": "2", "nextMatchId": "r16_4", "nextSlot": "team1" }, { "id": "r32_8", "team1": "Belgium", "team2": "Senegal", "score1": "1", "score2": "3", "nextMatchId": "r16_4", "nextSlot": "team2" }, { "id": "r32_9", "team1": "Brazil", "team2": "Japan", "score1": "3", "score2": "2", "nextMatchId": "r16_5", "nextSlot": "team1" }, { "id": "r32_10", "team1": "Ivory Coast", "team2": "Norway", "score1": "2", "score2": "3", "nextMatchId": "r16_5", "nextSlot": "team2" }, { "id": "r32_11", "team1": "Mexico", "team2": "Ecuador", "score1": "3", "score2": "2", "nextMatchId": "r16_6", "nextSlot": "team1" }, { "id": "r32_12", "team1": "England", "team2": "Congo DR", "score1": "3", "score2": "2", "nextMatchId": "r16_6", "nextSlot": "team2" }, { "id": "r32_13", "team1": "Argentina", "team2": "Cape Verde", "score1": "3", "score2": "2", "nextMatchId": "r16_7", "nextSlot": "team1" }, { "id": "r32_14", "team1": "Australia", "team2": "Egypt", "score1": "3", "score2": "2", "nextMatchId": "r16_7", "nextSlot": "team2" }, { "id": "r32_15", "team1": "Switzerland", "team2": "Algeria", "score1": "2", "score2": "3", "nextMatchId": "r16_8", "nextSlot": "team1" }, { "id": "r32_16", "team1": "Colombia", "team2": "Ghana", "score1": "3", "score2": "2", "nextMatchId": "r16_8", "nextSlot": "team2" }], "roundOf16": [{ "id": "r16_1", "team1": "Paraguay", "team2": "Sweden", "score1": "3", "score2": "2", "nextMatchId": "qf_1", "nextSlot": "team1" }, { "id": "r16_2", "team1": "Canada", "team2": "Morocco", "score1": "3", "score2": "2", "nextMatchId": "qf_1", "nextSlot": "team2" }, { "id": "r16_3", "team1": "Portugal", "team2": "Spain", "score1": "3", "score2": "2", "nextMatchId": "qf_2", "nextSlot": "team1" }, { "id": "r16_4", "team1": "USA", "team2": "Senegal", "score1": "2", "score2": "3", "nextMatchId": "qf_2", "nextSlot": "team2" }, { "id": "r16_5", "team1": "Brazil", "team2": "Norway", "score1": "3", "score2": "1", "nextMatchId": "qf_3", "nextSlot": "team1" }, { "id": "r16_6", "team1": "Mexico", "team2": "England", "score1": "4", "score2": "5", "nextMatchId": "qf_3", "nextSlot": "team2" }, { "id": "r16_7", "team1": "Argentina", "team2": "Australia", "score1": "3", "score2": "2", "nextMatchId": "qf_4", "nextSlot": "team1" }, { "id": "r16_8", "team1": "Algeria", "team2": "Colombia", "score1": "3", "score2": "4", "nextMatchId": "qf_4", "nextSlot": "team2" }], "quarterFinals": [{ "id": "qf_1", "team1": "Paraguay", "team2": "Canada", "score1": "2", "score2": "3", "nextMatchId": "sf_1", "nextSlot": "team1" }, { "id": "qf_2", "team1": "Portugal", "team2": "Senegal", "score1": "3", "score2": "2", "nextMatchId": "sf_1", "nextSlot": "team2" }, { "id": "qf_3", "team1": "Brazil", "team2": "England", "score1": "3", "score2": "5", "nextMatchId": "sf_2", "nextSlot": "team1" }, { "id": "qf_4", "team1": "Argentina", "team2": "Colombia", "score1": "4", "score2": "3", "nextMatchId": "sf_2", "nextSlot": "team2" }], "semiFinals": [{ "id": "sf_1", "team1": "Canada", "team2": "Portugal", "score1": "3", "score2": "2", "nextMatchId": "final_1", "nextSlot": "team1", "loserMatchId": "tp_1", "loserSlot": "team1" }, { "id": "sf_2", "team1": "England", "team2": "Argentina", "score1": "3", "score2": "2", "nextMatchId": "final_1", "nextSlot": "team2", "loserMatchId": "tp_1", "loserSlot": "team2" }], "final": [{ "id": "final_1", "team1": "Canada", "team2": "England", "score1": "3", "score2": "2", "nextMatchId": "champ", "nextSlot": null }], "thirdPlace": [{ "id": "tp_1", "team1": "Portugal", "team2": "Argentina", "score1": "3", "score2": "4", "nextMatchId": null, "nextSlot": null }], "champion": "Canada" } }, { "id": "1782782181151", "name": "Maryam", "bracket": { "roundOf32": [{ "id": "r32_1", "team1": "Germany", "team2": "Paraguay", "score1": "2", "score2": "1", "nextMatchId": "r16_1", "nextSlot": "team1" }, { "id": "r32_2", "team1": "France", "team2": "Sweden", "score1": "3", "score2": "0", "nextMatchId": "r16_1", "nextSlot": "team2" }, { "id": "r32_3", "team1": "South Africa", "team2": "Canada", "score1": "0", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team1" }, { "id": "r32_4", "team1": "Netherlands", "team2": "Morocco", "score1": "1", "score2": "2", "nextMatchId": "r16_2", "nextSlot": "team2" }, { "id": "r32_5", "team1": "Portugal", "team2": "Croatia", "score1": "2", "score2": "1", "nextMatchId": "r16_3", "nextSlot": "team1" }, { "id": "r32_6", "team1": "Spain", "team2": "Austria", "score1": "2", "score2": "1", "nextMatchId": "r16_3", "nextSlot": "team2" }, { "id": "r32_7", "team1": "USA", "team2": "Bosnia and Herz.", "score1": "1", "score2": "0", "nextMatchId": "r16_4", "nextSlot": "team1" }, { "id": "r32_8", "team1": "Belgium", "team2": "Senegal", "score1": "1", "score2": "2", "nextMatchId": "r16_4", "nextSlot": "team2" }, { "id": "r32_9", "team1": "Brazil", "team2": "Japan", "score1": "2", "score2": "1", "nextMatchId": "r16_5", "nextSlot": "team1" }, { "id": "r32_10", "team1": "Ivory Coast", "team2": "Norway", "score1": "2", "score2": "1", "nextMatchId": "r16_5", "nextSlot": "team2" }, { "id": "r32_11", "team1": "Mexico", "team2": "Ecuador", "score1": "2", "score2": "1", "nextMatchId": "r16_6", "nextSlot": "team1" }, { "id": "r32_12", "team1": "England", "team2": "Congo DR", "score1": "2", "score2": "0", "nextMatchId": "r16_6", "nextSlot": "team2" }, { "id": "r32_13", "team1": "Argentina", "team2": "Cape Verde", "score1": "2", "score2": "0", "nextMatchId": "r16_7", "nextSlot": "team1" }, { "id": "r32_14", "team1": "Australia", "team2": "Egypt", "score1": "2", "score2": "1", "nextMatchId": "r16_7", "nextSlot": "team2" }, { "id": "r32_15", "team1": "Switzerland", "team2": "Algeria", "score1": "2", "score2": "1", "nextMatchId": "r16_8", "nextSlot": "team1" }, { "id": "r32_16", "team1": "Colombia", "team2": "Ghana", "score1": "2", "score2": "1", "nextMatchId": "r16_8", "nextSlot": "team2" }], "roundOf16": [{ "id": "r16_1", "team1": "Germany", "team2": "France", "score1": "1", "score2": "2", "nextMatchId": "qf_1", "nextSlot": "team1" }, { "id": "r16_2", "team1": "Canada", "team2": "Morocco", "score1": "0", "score2": "2", "nextMatchId": "qf_1", "nextSlot": "team2" }, { "id": "r16_3", "team1": "Portugal", "team2": "Spain", "score1": "2", "score2": "1", "nextMatchId": "qf_2", "nextSlot": "team1" }, { "id": "r16_4", "team1": "USA", "team2": "Senegal", "score1": "0", "score2": "1", "nextMatchId": "qf_2", "nextSlot": "team2" }, { "id": "r16_5", "team1": "Brazil", "team2": "Ivory Coast", "score1": "2", "score2": "0", "nextMatchId": "qf_3", "nextSlot": "team1" }, { "id": "r16_6", "team1": "Mexico", "team2": "England", "score1": "2", "score2": "1", "nextMatchId": "qf_3", "nextSlot": "team2" }, { "id": "r16_7", "team1": "Argentina", "team2": "Australia", "score1": "3", "score2": "1", "nextMatchId": "qf_4", "nextSlot": "team1" }, { "id": "r16_8", "team1": "Switzerland", "team2": "Colombia", "score1": "2", "score2": "1", "nextMatchId": "qf_4", "nextSlot": "team2" }], "quarterFinals": [{ "id": "qf_1", "team1": "France", "team2": "Morocco", "score1": "2", "score2": "1", "nextMatchId": "sf_1", "nextSlot": "team1" }, { "id": "qf_2", "team1": "Portugal", "team2": "Senegal", "score1": "2", "score2": "1", "nextMatchId": "sf_1", "nextSlot": "team2" }, { "id": "qf_3", "team1": "Brazil", "team2": "Mexico", "score1": "2", "score2": "1", "nextMatchId": "sf_2", "nextSlot": "team1" }, { "id": "qf_4", "team1": "Argentina", "team2": "Switzerland", "score1": "2", "score2": "1", "nextMatchId": "sf_2", "nextSlot": "team2" }], "semiFinals": [{ "id": "sf_1", "team1": "France", "team2": "Portugal", "score1": "2", "score2": "1", "nextMatchId": "final_1", "nextSlot": "team1", "loserMatchId": "tp_1", "loserSlot": "team1" }, { "id": "sf_2", "team1": "Brazil", "team2": "Argentina", "score1": "2", "score2": "1", "nextMatchId": "final_1", "nextSlot": "team2", "loserMatchId": "tp_1", "loserSlot": "team2" }], "final": [{ "id": "final_1", "team1": "France", "team2": "Brazil", "score1": "2", "score2": "1", "nextMatchId": "champ", "nextSlot": null }], "thirdPlace": [{ "id": "tp_1", "team1": "Portugal", "team2": "Argentina", "score1": "2", "score2": "1", "nextMatchId": null, "nextSlot": null }], "champion": "France" } }, { "id": "1782782576577", "name": "Max", "bracket": { "roundOf32": [{ "id": "r32_1", "team1": "Germany", "team2": "Paraguay", "score1": "2", "score2": "0", "nextMatchId": "r16_1", "nextSlot": "team1" }, { "id": "r32_2", "team1": "France", "team2": "Sweden", "score1": "3", "score2": "1", "nextMatchId": "r16_1", "nextSlot": "team2" }, { "id": "r32_3", "team1": "South Africa", "team2": "Canada", "score1": "0", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team1" }, { "id": "r32_4", "team1": "Netherlands", "team2": "Morocco", "score1": "2", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team2" }, { "id": "r32_5", "team1": "Portugal", "team2": "Croatia", "score1": "2", "score2": "1", "nextMatchId": "r16_3", "nextSlot": "team1" }, { "id": "r32_6", "team1": "Spain", "team2": "Austria", "score1": "3", "score2": "1", "nextMatchId": "r16_3", "nextSlot": "team2" }, { "id": "r32_7", "team1": "USA", "team2": "Bosnia and Herz.", "score1": "1", "score2": "0", "nextMatchId": "r16_4", "nextSlot": "team1" }, { "id": "r32_8", "team1": "Belgium", "team2": "Senegal", "score1": "2", "score2": "1", "nextMatchId": "r16_4", "nextSlot": "team2" }, { "id": "r32_9", "team1": "Brazil", "team2": "Japan", "score1": "3", "score2": "0", "nextMatchId": "r16_5", "nextSlot": "team1" }, { "id": "r32_10", "team1": "Ivory Coast", "team2": "Norway", "score1": "1", "score2": "3", "nextMatchId": "r16_5", "nextSlot": "team2" }, { "id": "r32_11", "team1": "Mexico", "team2": "Ecuador", "score1": "2", "score2": "1", "nextMatchId": "r16_6", "nextSlot": "team1" }, { "id": "r32_12", "team1": "England", "team2": "Congo DR", "score1": "3", "score2": "0", "nextMatchId": "r16_6", "nextSlot": "team2" }, { "id": "r32_13", "team1": "Argentina", "team2": "Cape Verde", "score1": "4", "score2": "0", "nextMatchId": "r16_7", "nextSlot": "team1" }, { "id": "r32_14", "team1": "Australia", "team2": "Egypt", "score1": "1", "score2": "0", "nextMatchId": "r16_7", "nextSlot": "team2" }, { "id": "r32_15", "team1": "Switzerland", "team2": "Algeria", "score1": "2", "score2": "1", "nextMatchId": "r16_8", "nextSlot": "team1" }, { "id": "r32_16", "team1": "Colombia", "team2": "Ghana", "score1": "3", "score2": "1", "nextMatchId": "r16_8", "nextSlot": "team2" }], "roundOf16": [{ "id": "r16_1", "team1": "Germany", "team2": "France", "score1": "1", "score2": "2", "nextMatchId": "qf_1", "nextSlot": "team1" }, { "id": "r16_2", "team1": "Canada", "team2": "Netherlands", "score1": "1", "score2": "3", "nextMatchId": "qf_1", "nextSlot": "team2" }, { "id": "r16_3", "team1": "Portugal", "team2": "Spain", "score1": "1", "score2": "3", "nextMatchId": "qf_2", "nextSlot": "team1" }, { "id": "r16_4", "team1": "USA", "team2": "Belgium", "score1": "1", "score2": "2", "nextMatchId": "qf_2", "nextSlot": "team2" }, { "id": "r16_5", "team1": "Brazil", "team2": "Norway", "score1": "2", "score2": "3", "nextMatchId": "qf_3", "nextSlot": "team1" }, { "id": "r16_6", "team1": "Mexico", "team2": "England", "score1": "1", "score2": "2", "nextMatchId": "qf_3", "nextSlot": "team2" }, { "id": "r16_7", "team1": "Argentina", "team2": "Australia", "score1": "2", "score2": "0", "nextMatchId": "qf_4", "nextSlot": "team1" }, { "id": "r16_8", "team1": "Switzerland", "team2": "Colombia", "score1": "1", "score2": "2", "nextMatchId": "qf_4", "nextSlot": "team2" }], "quarterFinals": [{ "id": "qf_1", "team1": "France", "team2": "Netherlands", "score1": "3", "score2": "2", "nextMatchId": "sf_1", "nextSlot": "team1" }, { "id": "qf_2", "team1": "Spain", "team2": "Belgium", "score1": "2", "score2": "1", "nextMatchId": "sf_1", "nextSlot": "team2" }, { "id": "qf_3", "team1": "Norway", "team2": "England", "score1": "2", "score2": "1", "nextMatchId": "sf_2", "nextSlot": "team1" }, { "id": "qf_4", "team1": "Argentina", "team2": "Colombia", "score1": "1", "score2": "0", "nextMatchId": "sf_2", "nextSlot": "team2" }], "semiFinals": [{ "id": "sf_1", "team1": "France", "team2": "Spain", "score1": "3", "score2": "1", "nextMatchId": "final_1", "nextSlot": "team1", "loserMatchId": "tp_1", "loserSlot": "team1" }, { "id": "sf_2", "team1": "Norway", "team2": "Argentina", "score1": "3", "score2": "2", "nextMatchId": "final_1", "nextSlot": "team2", "loserMatchId": "tp_1", "loserSlot": "team2" }], "final": [{ "id": "final_1", "team1": "France", "team2": "Norway", "score1": "2", "score2": "1", "nextMatchId": "champ", "nextSlot": null }], "thirdPlace": [{ "id": "tp_1", "team1": "Spain", "team2": "Argentina", "score1": "3", "score2": "1", "nextMatchId": null, "nextSlot": null }], "champion": "France" } }, { "id": "1782782947458", "name": "May", "bracket": { "roundOf32": [{ "id": "r32_1", "team1": "Germany", "team2": "Paraguay", "score1": "2", "score2": "1", "nextMatchId": "r16_1", "nextSlot": "team1" }, { "id": "r32_2", "team1": "France", "team2": "Sweden", "score1": "3", "score2": "0", "nextMatchId": "r16_1", "nextSlot": "team2" }, { "id": "r32_3", "team1": "South Africa", "team2": "Canada", "score1": "0", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team1" }, { "id": "r32_4", "team1": "Netherlands", "team2": "Morocco", "score1": "1", "score2": "2", "nextMatchId": "r16_2", "nextSlot": "team2" }, { "id": "r32_5", "team1": "Portugal", "team2": "Croatia", "score1": "2", "score2": "1", "nextMatchId": "r16_3", "nextSlot": "team1" }, { "id": "r32_6", "team1": "Spain", "team2": "Austria", "score1": "2", "score2": "1", "nextMatchId": "r16_3", "nextSlot": "team2" }, { "id": "r32_7", "team1": "USA", "team2": "Bosnia and Herz.", "score1": "1", "score2": "2", "nextMatchId": "r16_4", "nextSlot": "team1" }, { "id": "r32_8", "team1": "Belgium", "team2": "Senegal", "score1": "1", "score2": "0", "nextMatchId": "r16_4", "nextSlot": "team2" }, { "id": "r32_9", "team1": "Brazil", "team2": "Japan", "score1": "2", "score2": "1", "nextMatchId": "r16_5", "nextSlot": "team1" }, { "id": "r32_10", "team1": "Ivory Coast", "team2": "Norway", "score1": "1", "score2": "0", "nextMatchId": "r16_5", "nextSlot": "team2" }, { "id": "r32_11", "team1": "Mexico", "team2": "Ecuador", "score1": "1", "score2": "0", "nextMatchId": "r16_6", "nextSlot": "team1" }, { "id": "r32_12", "team1": "England", "team2": "Congo DR", "score1": "2", "score2": "1", "nextMatchId": "r16_6", "nextSlot": "team2" }, { "id": "r32_13", "team1": "Argentina", "team2": "Cape Verde", "score1": "3", "score2": "1", "nextMatchId": "r16_7", "nextSlot": "team1" }, { "id": "r32_14", "team1": "Australia", "team2": "Egypt", "score1": "1", "score2": "2", "nextMatchId": "r16_7", "nextSlot": "team2" }, { "id": "r32_15", "team1": "Switzerland", "team2": "Algeria", "score1": "2", "score2": "1", "nextMatchId": "r16_8", "nextSlot": "team1" }, { "id": "r32_16", "team1": "Colombia", "team2": "Ghana", "score1": "1", "score2": "0", "nextMatchId": "r16_8", "nextSlot": "team2" }], "roundOf16": [{ "id": "r16_1", "team1": "Germany", "team2": "France", "score1": "1", "score2": "2", "nextMatchId": "qf_1", "nextSlot": "team1" }, { "id": "r16_2", "team1": "Canada", "team2": "Morocco", "score1": "1", "score2": "2", "nextMatchId": "qf_1", "nextSlot": "team2" }, { "id": "r16_3", "team1": "Portugal", "team2": "Spain", "score1": "1", "score2": "2", "nextMatchId": "qf_2", "nextSlot": "team1" }, { "id": "r16_4", "team1": "Bosnia and Herz.", "team2": "Belgium", "score1": "1", "score2": "2", "nextMatchId": "qf_2", "nextSlot": "team2" }, { "id": "r16_5", "team1": "Brazil", "team2": "Ivory Coast", "score1": "3", "score2": "1", "nextMatchId": "qf_3", "nextSlot": "team1" }, { "id": "r16_6", "team1": "Mexico", "team2": "England", "score1": "1", "score2": "2", "nextMatchId": "qf_3", "nextSlot": "team2" }, { "id": "r16_7", "team1": "Argentina", "team2": "Egypt", "score1": "2", "score2": "1", "nextMatchId": "qf_4", "nextSlot": "team1" }, { "id": "r16_8", "team1": "Switzerland", "team2": "Colombia", "score1": "1", "score2": "2", "nextMatchId": "qf_4", "nextSlot": "team2" }], "quarterFinals": [{ "id": "qf_1", "team1": "France", "team2": "Morocco", "score1": "3", "score2": "1", "nextMatchId": "sf_1", "nextSlot": "team1" }, { "id": "qf_2", "team1": "Spain", "team2": "Belgium", "score1": "2", "score2": "1", "nextMatchId": "sf_1", "nextSlot": "team2" }, { "id": "qf_3", "team1": "Brazil", "team2": "England", "score1": "1", "score2": "2", "nextMatchId": "sf_2", "nextSlot": "team1" }, { "id": "qf_4", "team1": "Argentina", "team2": "Colombia", "score1": "2", "score2": "1", "nextMatchId": "sf_2", "nextSlot": "team2" }], "semiFinals": [{ "id": "sf_1", "team1": "France", "team2": "Spain", "score1": "2", "score2": "1", "nextMatchId": "final_1", "nextSlot": "team1", "loserMatchId": "tp_1", "loserSlot": "team1" }, { "id": "sf_2", "team1": "England", "team2": "Argentina", "score1": "1", "score2": "2", "nextMatchId": "final_1", "nextSlot": "team2", "loserMatchId": "tp_1", "loserSlot": "team2" }], "final": [{ "id": "final_1", "team1": "France", "team2": "Argentina", "score1": "2", "score2": "1", "nextMatchId": "champ", "nextSlot": null }], "thirdPlace": [{ "id": "tp_1", "team1": "Spain", "team2": "England", "score1": "2", "score2": "1", "nextMatchId": null, "nextSlot": null }], "champion": "France" } }, { "id": "1782783281094", "name": "Michel", "bracket": { "roundOf32": [{ "id": "r32_1", "team1": "Germany", "team2": "Paraguay", "score1": "3", "score2": "0", "nextMatchId": "r16_1", "nextSlot": "team1" }, { "id": "r32_2", "team1": "France", "team2": "Sweden", "score1": "3", "score2": "0", "nextMatchId": "r16_1", "nextSlot": "team2" }, { "id": "r32_3", "team1": "South Africa", "team2": "Canada", "score1": "0", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team1" }, { "id": "r32_4", "team1": "Netherlands", "team2": "Morocco", "score1": "3", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team2" }, { "id": "r32_5", "team1": "Portugal", "team2": "Croatia", "score1": "2", "score2": "1", "nextMatchId": "r16_3", "nextSlot": "team1" }, { "id": "r32_6", "team1": "Spain", "team2": "Austria", "score1": "4", "score2": "2", "nextMatchId": "r16_3", "nextSlot": "team2" }, { "id": "r32_7", "team1": "USA", "team2": "Bosnia and Herz.", "score1": "3", "score2": "1", "nextMatchId": "r16_4", "nextSlot": "team1" }, { "id": "r32_8", "team1": "Belgium", "team2": "Senegal", "score1": "2", "score2": "1", "nextMatchId": "r16_4", "nextSlot": "team2" }, { "id": "r32_9", "team1": "Brazil", "team2": "Japan", "score1": "3", "score2": "1", "nextMatchId": "r16_5", "nextSlot": "team1" }, { "id": "r32_10", "team1": "Ivory Coast", "team2": "Norway", "score1": "1", "score2": "3", "nextMatchId": "r16_5", "nextSlot": "team2" }, { "id": "r32_11", "team1": "Mexico", "team2": "Ecuador", "score1": "1", "score2": "0", "nextMatchId": "r16_6", "nextSlot": "team1" }, { "id": "r32_12", "team1": "England", "team2": "Congo DR", "score1": "3", "score2": "0", "nextMatchId": "r16_6", "nextSlot": "team2" }, { "id": "r32_13", "team1": "Argentina", "team2": "Cape Verde", "score1": "3", "score2": "0", "nextMatchId": "r16_7", "nextSlot": "team1" }, { "id": "r32_14", "team1": "Australia", "team2": "Egypt", "score1": "0", "score2": "2", "nextMatchId": "r16_7", "nextSlot": "team2" }, { "id": "r32_15", "team1": "Switzerland", "team2": "Algeria", "score1": "2", "score2": "1", "nextMatchId": "r16_8", "nextSlot": "team1" }, { "id": "r32_16", "team1": "Colombia", "team2": "Ghana", "score1": "2", "score2": "1", "nextMatchId": "r16_8", "nextSlot": "team2" }], "roundOf16": [{ "id": "r16_1", "team1": "Germany", "team2": "France", "score1": "2", "score2": "4", "nextMatchId": "qf_1", "nextSlot": "team1" }, { "id": "r16_2", "team1": "Canada", "team2": "Netherlands", "score1": "2", "score2": "1", "nextMatchId": "qf_1", "nextSlot": "team2" }, { "id": "r16_3", "team1": "Portugal", "team2": "Spain", "score1": "3", "score2": "2", "nextMatchId": "qf_2", "nextSlot": "team1" }, { "id": "r16_4", "team1": "USA", "team2": "Belgium", "score1": "3", "score2": "1", "nextMatchId": "qf_2", "nextSlot": "team2" }, { "id": "r16_5", "team1": "Brazil", "team2": "Norway", "score1": "2", "score2": "1", "nextMatchId": "qf_3", "nextSlot": "team1" }, { "id": "r16_6", "team1": "Mexico", "team2": "England", "score1": "2", "score2": "3", "nextMatchId": "qf_3", "nextSlot": "team2" }, { "id": "r16_7", "team1": "Argentina", "team2": "Egypt", "score1": "0", "score2": "2", "nextMatchId": "qf_4", "nextSlot": "team1" }, { "id": "r16_8", "team1": "Switzerland", "team2": "Colombia", "score1": "1", "score2": "2", "nextMatchId": "qf_4", "nextSlot": "team2" }], "quarterFinals": [{ "id": "qf_1", "team1": "France", "team2": "Canada", "score1": "1", "score2": "2", "nextMatchId": "sf_1", "nextSlot": "team1" }, { "id": "qf_2", "team1": "Portugal", "team2": "USA", "score1": "2", "score2": "0", "nextMatchId": "sf_1", "nextSlot": "team2" }, { "id": "qf_3", "team1": "Brazil", "team2": "England", "score1": "3", "score2": "1", "nextMatchId": "sf_2", "nextSlot": "team1" }, { "id": "qf_4", "team1": "Egypt", "team2": "Colombia", "score1": "1", "score2": "0", "nextMatchId": "sf_2", "nextSlot": "team2" }], "semiFinals": [{ "id": "sf_1", "team1": "Canada", "team2": "Portugal", "score1": "3", "score2": "2", "nextMatchId": "final_1", "nextSlot": "team1", "loserMatchId": "tp_1", "loserSlot": "team1" }, { "id": "sf_2", "team1": "Brazil", "team2": "Egypt", "score1": "1", "score2": "2", "nextMatchId": "final_1", "nextSlot": "team2", "loserMatchId": "tp_1", "loserSlot": "team2" }], "final": [{ "id": "final_1", "team1": "Canada", "team2": "Egypt", "score1": "3", "score2": "1", "nextMatchId": "champ", "nextSlot": null }], "thirdPlace": [{ "id": "tp_1", "team1": "Portugal", "team2": "Brazil", "score1": "0", "score2": "3", "nextMatchId": null, "nextSlot": null }], "champion": "Canada" } }, { "id": "1782783756412", "name": "Natalia", "bracket": { "roundOf32": [{ "id": "r32_1", "team1": "Germany", "team2": "Paraguay", "score1": "4", "score2": "1", "nextMatchId": "r16_1", "nextSlot": "team1" }, { "id": "r32_2", "team1": "France", "team2": "Sweden", "score1": "3", "score2": "1", "nextMatchId": "r16_1", "nextSlot": "team2" }, { "id": "r32_3", "team1": "South Africa", "team2": "Canada", "score1": "0", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team1" }, { "id": "r32_4", "team1": "Netherlands", "team2": "Morocco", "score1": "3", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team2" }, { "id": "r32_5", "team1": "Portugal", "team2": "Croatia", "score1": "3", "score2": "2", "nextMatchId": "r16_3", "nextSlot": "team1" }, { "id": "r32_6", "team1": "Spain", "team2": "Austria", "score1": "3", "score2": "2", "nextMatchId": "r16_3", "nextSlot": "team2" }, { "id": "r32_7", "team1": "USA", "team2": "Bosnia and Herz.", "score1": "2", "score2": "0", "nextMatchId": "r16_4", "nextSlot": "team1" }, { "id": "r32_8", "team1": "Belgium", "team2": "Senegal", "score1": "1", "score2": "2", "nextMatchId": "r16_4", "nextSlot": "team2" }, { "id": "r32_9", "team1": "Brazil", "team2": "Japan", "score1": "3", "score2": "1", "nextMatchId": "r16_5", "nextSlot": "team1" }, { "id": "r32_10", "team1": "Ivory Coast", "team2": "Norway", "score1": "1", "score2": "3", "nextMatchId": "r16_5", "nextSlot": "team2" }, { "id": "r32_11", "team1": "Mexico", "team2": "Ecuador", "score1": "2", "score2": "1", "nextMatchId": "r16_6", "nextSlot": "team1" }, { "id": "r32_12", "team1": "England", "team2": "Congo DR", "score1": "2", "score2": "0", "nextMatchId": "r16_6", "nextSlot": "team2" }, { "id": "r32_13", "team1": "Argentina", "team2": "Cape Verde", "score1": "3", "score2": "1", "nextMatchId": "r16_7", "nextSlot": "team1" }, { "id": "r32_14", "team1": "Australia", "team2": "Egypt", "score1": "1", "score2": "0", "nextMatchId": "r16_7", "nextSlot": "team2" }, { "id": "r32_15", "team1": "Switzerland", "team2": "Algeria", "score1": "3", "score2": "0", "nextMatchId": "r16_8", "nextSlot": "team1" }, { "id": "r32_16", "team1": "Colombia", "team2": "Ghana", "score1": "3", "score2": "1", "nextMatchId": "r16_8", "nextSlot": "team2" }], "roundOf16": [{ "id": "r16_1", "team1": "Germany", "team2": "France", "score1": "3", "score2": "2", "nextMatchId": "qf_1", "nextSlot": "team1" }, { "id": "r16_2", "team1": "Canada", "team2": "Netherlands", "score1": "0", "score2": "1", "nextMatchId": "qf_1", "nextSlot": "team2" }, { "id": "r16_3", "team1": "Portugal", "team2": "Spain", "score1": "2", "score2": "1", "nextMatchId": "qf_2", "nextSlot": "team1" }, { "id": "r16_4", "team1": "USA", "team2": "Senegal", "score1": "3", "score2": "2", "nextMatchId": "qf_2", "nextSlot": "team2" }, { "id": "r16_5", "team1": "Brazil", "team2": "Norway", "score1": "2", "score2": "1", "nextMatchId": "qf_3", "nextSlot": "team1" }, { "id": "r16_6", "team1": "Mexico", "team2": "England", "score1": "1", "score2": "2", "nextMatchId": "qf_3", "nextSlot": "team2" }, { "id": "r16_7", "team1": "Argentina", "team2": "Australia", "score1": "4", "score2": "1", "nextMatchId": "qf_4", "nextSlot": "team1" }, { "id": "r16_8", "team1": "Switzerland", "team2": "Colombia", "score1": "1", "score2": "2", "nextMatchId": "qf_4", "nextSlot": "team2" }], "quarterFinals": [{ "id": "qf_1", "team1": "Germany", "team2": "Netherlands", "score1": "2", "score2": "3", "nextMatchId": "sf_1", "nextSlot": "team1" }, { "id": "qf_2", "team1": "Portugal", "team2": "USA", "score1": "3", "score2": "2", "nextMatchId": "sf_1", "nextSlot": "team2" }, { "id": "qf_3", "team1": "Brazil", "team2": "England", "score1": "2", "score2": "1", "nextMatchId": "sf_2", "nextSlot": "team1" }, { "id": "qf_4", "team1": "Argentina", "team2": "Colombia", "score1": "2", "score2": "3", "nextMatchId": "sf_2", "nextSlot": "team2" }], "semiFinals": [{ "id": "sf_1", "team1": "Netherlands", "team2": "Portugal", "score1": "3", "score2": "1", "nextMatchId": "final_1", "nextSlot": "team1", "loserMatchId": "tp_1", "loserSlot": "team1" }, { "id": "sf_2", "team1": "Brazil", "team2": "Colombia", "score1": "1", "score2": "2", "nextMatchId": "final_1", "nextSlot": "team2", "loserMatchId": "tp_1", "loserSlot": "team2" }], "final": [{ "id": "final_1", "team1": "Netherlands", "team2": "Colombia", "score1": "2", "score2": "3", "nextMatchId": "champ", "nextSlot": null }], "thirdPlace": [{ "id": "tp_1", "team1": "Portugal", "team2": "Brazil", "score1": "2", "score2": "1", "nextMatchId": null, "nextSlot": null }], "champion": "Colombia" } }, { "id": "1782784316010", "name": "Pierre", "bracket": { "roundOf32": [{ "id": "r32_1", "team1": "Germany", "team2": "Paraguay", "score1": "2", "score2": "0", "nextMatchId": "r16_1", "nextSlot": "team1" }, { "id": "r32_2", "team1": "France", "team2": "Sweden", "score1": "3", "score2": "1", "nextMatchId": "r16_1", "nextSlot": "team2" }, { "id": "r32_3", "team1": "South Africa", "team2": "Canada", "score1": "0", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team1" }, { "id": "r32_4", "team1": "Netherlands", "team2": "Morocco", "score1": "1", "score2": "2", "nextMatchId": "r16_2", "nextSlot": "team2" }, { "id": "r32_5", "team1": "Portugal", "team2": "Croatia", "score1": "2", "score2": "1", "nextMatchId": "r16_3", "nextSlot": "team1" }, { "id": "r32_6", "team1": "Spain", "team2": "Austria", "score1": "2", "score2": "0", "nextMatchId": "r16_3", "nextSlot": "team2" }, { "id": "r32_7", "team1": "USA", "team2": "Bosnia and Herz.", "score1": "2", "score2": "1", "nextMatchId": "r16_4", "nextSlot": "team1" }, { "id": "r32_8", "team1": "Belgium", "team2": "Senegal", "score1": "2", "score2": "1", "nextMatchId": "r16_4", "nextSlot": "team2" }, { "id": "r32_9", "team1": "Brazil", "team2": "Japan", "score1": "2", "score2": "0", "nextMatchId": "r16_5", "nextSlot": "team1" }, { "id": "r32_10", "team1": "Ivory Coast", "team2": "Norway", "score1": "1", "score2": "2", "nextMatchId": "r16_5", "nextSlot": "team2" }, { "id": "r32_11", "team1": "Mexico", "team2": "Ecuador", "score1": "2", "score2": "1", "nextMatchId": "r16_6", "nextSlot": "team1" }, { "id": "r32_12", "team1": "England", "team2": "Congo DR", "score1": "3", "score2": "0", "nextMatchId": "r16_6", "nextSlot": "team2" }, { "id": "r32_13", "team1": "Argentina", "team2": "Cape Verde", "score1": "3", "score2": "0", "nextMatchId": "r16_7", "nextSlot": "team1" }, { "id": "r32_14", "team1": "Australia", "team2": "Egypt", "score1": "1", "score2": "2", "nextMatchId": "r16_7", "nextSlot": "team2" }, { "id": "r32_15", "team1": "Switzerland", "team2": "Algeria", "score1": "1", "score2": "0", "nextMatchId": "r16_8", "nextSlot": "team1" }, { "id": "r32_16", "team1": "Colombia", "team2": "Ghana", "score1": "2", "score2": "0", "nextMatchId": "r16_8", "nextSlot": "team2" }], "roundOf16": [{ "id": "r16_1", "team1": "Germany", "team2": "France", "score1": "1", "score2": "2", "nextMatchId": "qf_1", "nextSlot": "team1" }, { "id": "r16_2", "team1": "Canada", "team2": "Morocco", "score1": "1", "score2": "3", "nextMatchId": "qf_1", "nextSlot": "team2" }, { "id": "r16_3", "team1": "Portugal", "team2": "Spain", "score1": "0", "score2": "1", "nextMatchId": "qf_2", "nextSlot": "team1" }, { "id": "r16_4", "team1": "USA", "team2": "Belgium", "score1": "0", "score2": "2", "nextMatchId": "qf_2", "nextSlot": "team2" }, { "id": "r16_5", "team1": "Brazil", "team2": "Norway", "score1": "2", "score2": "1", "nextMatchId": "qf_3", "nextSlot": "team1" }, { "id": "r16_6", "team1": "Mexico", "team2": "England", "score1": "0", "score2": "2", "nextMatchId": "qf_3", "nextSlot": "team2" }, { "id": "r16_7", "team1": "Argentina", "team2": "Egypt", "score1": "2", "score2": "0", "nextMatchId": "qf_4", "nextSlot": "team1" }, { "id": "r16_8", "team1": "Switzerland", "team2": "Colombia", "score1": "0", "score2": "1", "nextMatchId": "qf_4", "nextSlot": "team2" }], "quarterFinals": [{ "id": "qf_1", "team1": "France", "team2": "Morocco", "score1": "3", "score2": "1", "nextMatchId": "sf_1", "nextSlot": "team1" }, { "id": "qf_2", "team1": "Spain", "team2": "Belgium", "score1": "2", "score2": "1", "nextMatchId": "sf_1", "nextSlot": "team2" }, { "id": "qf_3", "team1": "Brazil", "team2": "England", "score1": "1", "score2": "2", "nextMatchId": "sf_2", "nextSlot": "team1" }, { "id": "qf_4", "team1": "Argentina", "team2": "Colombia", "score1": "3", "score2": "1", "nextMatchId": "sf_2", "nextSlot": "team2" }], "semiFinals": [{ "id": "sf_1", "team1": "France", "team2": "Spain", "score1": "2", "score2": "1", "nextMatchId": "final_1", "nextSlot": "team1", "loserMatchId": "tp_1", "loserSlot": "team1" }, { "id": "sf_2", "team1": "England", "team2": "Argentina", "score1": "2", "score2": "1", "nextMatchId": "final_1", "nextSlot": "team2", "loserMatchId": "tp_1", "loserSlot": "team2" }], "final": [{ "id": "final_1", "team1": "France", "team2": "England", "score1": "2", "score2": "0", "nextMatchId": "champ", "nextSlot": null }], "thirdPlace": [{ "id": "tp_1", "team1": "Spain", "team2": "Argentina", "score1": "2", "score2": "3", "nextMatchId": null, "nextSlot": null }], "champion": "France" } }, { "id": "1782784651088", "name": "Riaka", "bracket": { "roundOf32": [{ "id": "r32_1", "team1": "Germany", "team2": "Paraguay", "score1": "4", "score2": "0", "nextMatchId": "r16_1", "nextSlot": "team1" }, { "id": "r32_2", "team1": "France", "team2": "Sweden", "score1": "5", "score2": "1", "nextMatchId": "r16_1", "nextSlot": "team2" }, { "id": "r32_3", "team1": "South Africa", "team2": "Canada", "score1": "0", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team1" }, { "id": "r32_4", "team1": "Netherlands", "team2": "Morocco", "score1": "3", "score2": "2", "nextMatchId": "r16_2", "nextSlot": "team2" }, { "id": "r32_5", "team1": "Portugal", "team2": "Croatia", "score1": "2", "score2": "1", "nextMatchId": "r16_3", "nextSlot": "team1" }, { "id": "r32_6", "team1": "Spain", "team2": "Austria", "score1": "1", "score2": "0", "nextMatchId": "r16_3", "nextSlot": "team2" }, { "id": "r32_7", "team1": "USA", "team2": "Bosnia and Herz.", "score1": "2", "score2": "0", "nextMatchId": "r16_4", "nextSlot": "team1" }, { "id": "r32_8", "team1": "Belgium", "team2": "Senegal", "score1": "1", "score2": "2", "nextMatchId": "r16_4", "nextSlot": "team2" }, { "id": "r32_9", "team1": "Brazil", "team2": "Japan", "score1": "1", "score2": "0", "nextMatchId": "r16_5", "nextSlot": "team1" }, { "id": "r32_10", "team1": "Ivory Coast", "team2": "Norway", "score1": "2", "score2": "3", "nextMatchId": "r16_5", "nextSlot": "team2" }, { "id": "r32_11", "team1": "Mexico", "team2": "Ecuador", "score1": "1", "score2": "0", "nextMatchId": "r16_6", "nextSlot": "team1" }, { "id": "r32_12", "team1": "England", "team2": "Congo DR", "score1": "3", "score2": "0", "nextMatchId": "r16_6", "nextSlot": "team2" }, { "id": "r32_13", "team1": "Argentina", "team2": "Cape Verde", "score1": "5", "score2": "0", "nextMatchId": "r16_7", "nextSlot": "team1" }, { "id": "r32_14", "team1": "Australia", "team2": "Egypt", "score1": "1", "score2": "3", "nextMatchId": "r16_7", "nextSlot": "team2" }, { "id": "r32_15", "team1": "Switzerland", "team2": "Algeria", "score1": "2", "score2": "0", "nextMatchId": "r16_8", "nextSlot": "team1" }, { "id": "r32_16", "team1": "Colombia", "team2": "Ghana", "score1": "3", "score2": "2", "nextMatchId": "r16_8", "nextSlot": "team2" }], "roundOf16": [{ "id": "r16_1", "team1": "Germany", "team2": "France", "score1": "2", "score2": "1", "nextMatchId": "qf_1", "nextSlot": "team1" }, { "id": "r16_2", "team1": "Canada", "team2": "Netherlands", "score1": "2", "score2": "3", "nextMatchId": "qf_1", "nextSlot": "team2" }, { "id": "r16_3", "team1": "Portugal", "team2": "Spain", "score1": "2", "score2": "3", "nextMatchId": "qf_2", "nextSlot": "team1" }, { "id": "r16_4", "team1": "USA", "team2": "Senegal", "score1": "1", "score2": "2", "nextMatchId": "qf_2", "nextSlot": "team2" }, { "id": "r16_5", "team1": "Brazil", "team2": "Norway", "score1": "1", "score2": "0", "nextMatchId": "qf_3", "nextSlot": "team1" }, { "id": "r16_6", "team1": "Mexico", "team2": "England", "score1": "2", "score2": "3", "nextMatchId": "qf_3", "nextSlot": "team2" }, { "id": "r16_7", "team1": "Argentina", "team2": "Egypt", "score1": "3", "score2": "1", "nextMatchId": "qf_4", "nextSlot": "team1" }, { "id": "r16_8", "team1": "Switzerland", "team2": "Colombia", "score1": "1", "score2": "3", "nextMatchId": "qf_4", "nextSlot": "team2" }], "quarterFinals": [{ "id": "qf_1", "team1": "Germany", "team2": "Netherlands", "score1": "1", "score2": "2", "nextMatchId": "sf_1", "nextSlot": "team1" }, { "id": "qf_2", "team1": "Spain", "team2": "Senegal", "score1": "3", "score2": "1", "nextMatchId": "sf_1", "nextSlot": "team2" }, { "id": "qf_3", "team1": "Brazil", "team2": "England", "score1": "2", "score2": "3", "nextMatchId": "sf_2", "nextSlot": "team1" }, { "id": "qf_4", "team1": "Argentina", "team2": "Colombia", "score1": "2", "score2": "1", "nextMatchId": "sf_2", "nextSlot": "team2" }], "semiFinals": [{ "id": "sf_1", "team1": "Netherlands", "team2": "Spain", "score1": "3", "score2": "2", "nextMatchId": "final_1", "nextSlot": "team1", "loserMatchId": "tp_1", "loserSlot": "team1" }, { "id": "sf_2", "team1": "England", "team2": "Argentina", "score1": "2", "score2": "3", "nextMatchId": "final_1", "nextSlot": "team2", "loserMatchId": "tp_1", "loserSlot": "team2" }], "final": [{ "id": "final_1", "team1": "Netherlands", "team2": "Argentina", "score1": "4", "score2": "3", "nextMatchId": "champ", "nextSlot": null }], "thirdPlace": [{ "id": "tp_1", "team1": "Spain", "team2": "England", "score1": "2", "score2": "1", "nextMatchId": null, "nextSlot": null }], "champion": "Netherlands" } }, { "id": "1782785032451", "name": "Rocio", "bracket": { "roundOf32": [{ "id": "r32_1", "team1": "Germany", "team2": "Paraguay", "score1": "2", "score2": "1", "nextMatchId": "r16_1", "nextSlot": "team1" }, { "id": "r32_2", "team1": "France", "team2": "Sweden", "score1": "2", "score2": "0", "nextMatchId": "r16_1", "nextSlot": "team2" }, { "id": "r32_3", "team1": "South Africa", "team2": "Canada", "score1": "0", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team1" }, { "id": "r32_4", "team1": "Netherlands", "team2": "Morocco", "score1": "1", "score2": "0", "nextMatchId": "r16_2", "nextSlot": "team2" }, { "id": "r32_5", "team1": "Portugal", "team2": "Croatia", "score1": "0", "score2": "2", "nextMatchId": "r16_3", "nextSlot": "team1" }, { "id": "r32_6", "team1": "Spain", "team2": "Austria", "score1": "3", "score2": "0", "nextMatchId": "r16_3", "nextSlot": "team2" }, { "id": "r32_7", "team1": "USA", "team2": "Bosnia and Herz.", "score1": "1", "score2": "0", "nextMatchId": "r16_4", "nextSlot": "team1" }, { "id": "r32_8", "team1": "Belgium", "team2": "Senegal", "score1": "0", "score2": "1", "nextMatchId": "r16_4", "nextSlot": "team2" }, { "id": "r32_9", "team1": "Brazil", "team2": "Japan", "score1": "2", "score2": "0", "nextMatchId": "r16_5", "nextSlot": "team1" }, { "id": "r32_10", "team1": "Ivory Coast", "team2": "Norway", "score1": "0", "score2": "1", "nextMatchId": "r16_5", "nextSlot": "team2" }, { "id": "r32_11", "team1": "Mexico", "team2": "Ecuador", "score1": "0", "score2": "1", "nextMatchId": "r16_6", "nextSlot": "team1" }, { "id": "r32_12", "team1": "England", "team2": "Congo DR", "score1": "2", "score2": "0", "nextMatchId": "r16_6", "nextSlot": "team2" }, { "id": "r32_13", "team1": "Argentina", "team2": "Cape Verde", "score1": "3", "score2": "0", "nextMatchId": "r16_7", "nextSlot": "team1" }, { "id": "r32_14", "team1": "Australia", "team2": "Egypt", "score1": "1", "score2": "0", "nextMatchId": "r16_7", "nextSlot": "team2" }, { "id": "r32_15", "team1": "Switzerland", "team2": "Algeria", "score1": "1", "score2": "0", "nextMatchId": "r16_8", "nextSlot": "team1" }, { "id": "r32_16", "team1": "Colombia", "team2": "Ghana", "score1": "2", "score2": "0", "nextMatchId": "r16_8", "nextSlot": "team2" }], "roundOf16": [{ "id": "r16_1", "team1": "Germany", "team2": "France", "score1": "1", "score2": "2", "nextMatchId": "qf_1", "nextSlot": "team1" }, { "id": "r16_2", "team1": "Canada", "team2": "Netherlands", "score1": "1", "score2": "2", "nextMatchId": "qf_1", "nextSlot": "team2" }, { "id": "r16_3", "team1": "Croatia", "team2": "Spain", "score1": "1", "score2": "2", "nextMatchId": "qf_2", "nextSlot": "team1" }, { "id": "r16_4", "team1": "USA", "team2": "Senegal", "score1": "1", "score2": "0", "nextMatchId": "qf_2", "nextSlot": "team2" }, { "id": "r16_5", "team1": "Brazil", "team2": "Norway", "score1": "1", "score2": "0", "nextMatchId": "qf_3", "nextSlot": "team1" }, { "id": "r16_6", "team1": "Ecuador", "team2": "England", "score1": "1", "score2": "2", "nextMatchId": "qf_3", "nextSlot": "team2" }, { "id": "r16_7", "team1": "Argentina", "team2": "Australia", "score1": "3", "score2": "0", "nextMatchId": "qf_4", "nextSlot": "team1" }, { "id": "r16_8", "team1": "Switzerland", "team2": "Colombia", "score1": "0", "score2": "1", "nextMatchId": "qf_4", "nextSlot": "team2" }], "quarterFinals": [{ "id": "qf_1", "team1": "France", "team2": "Netherlands", "score1": "2", "score2": "1", "nextMatchId": "sf_1", "nextSlot": "team1" }, { "id": "qf_2", "team1": "Spain", "team2": "USA", "score1": "1", "score2": "0", "nextMatchId": "sf_1", "nextSlot": "team2" }, { "id": "qf_3", "team1": "Brazil", "team2": "England", "score1": "1", "score2": "0", "nextMatchId": "sf_2", "nextSlot": "team1" }, { "id": "qf_4", "team1": "Argentina", "team2": "Colombia", "score1": "0", "score2": "1", "nextMatchId": "sf_2", "nextSlot": "team2" }], "semiFinals": [{ "id": "sf_1", "team1": "France", "team2": "Spain", "score1": "1", "score2": "0", "nextMatchId": "final_1", "nextSlot": "team1", "loserMatchId": "tp_1", "loserSlot": "team1" }, { "id": "sf_2", "team1": "Brazil", "team2": "Colombia", "score1": "0", "score2": "1", "nextMatchId": "final_1", "nextSlot": "team2", "loserMatchId": "tp_1", "loserSlot": "team2" }], "final": [{ "id": "final_1", "team1": "France", "team2": "Colombia", "score1": "2", "score2": "1", "nextMatchId": "champ", "nextSlot": null }], "thirdPlace": [{ "id": "tp_1", "team1": "Spain", "team2": "Brazil", "score1": "0", "score2": "2", "nextMatchId": null, "nextSlot": null }], "champion": "France" } }, { "id": "1782785285733", "name": "Scott", "bracket": { "roundOf32": [{ "id": "r32_1", "team1": "Germany", "team2": "Paraguay", "score1": "3", "score2": "0", "nextMatchId": "r16_1", "nextSlot": "team1" }, { "id": "r32_2", "team1": "France", "team2": "Sweden", "score1": "2", "score2": "0", "nextMatchId": "r16_1", "nextSlot": "team2" }, { "id": "r32_3", "team1": "South Africa", "team2": "Canada", "score1": "0", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team1" }, { "id": "r32_4", "team1": "Netherlands", "team2": "Morocco", "score1": "3", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team2" }, { "id": "r32_5", "team1": "Portugal", "team2": "Croatia", "score1": "3", "score2": "1", "nextMatchId": "r16_3", "nextSlot": "team1" }, { "id": "r32_6", "team1": "Spain", "team2": "Austria", "score1": "3", "score2": "0", "nextMatchId": "r16_3", "nextSlot": "team2" }, { "id": "r32_7", "team1": "USA", "team2": "Bosnia and Herz.", "score1": "4", "score2": "0", "nextMatchId": "r16_4", "nextSlot": "team1" }, { "id": "r32_8", "team1": "Belgium", "team2": "Senegal", "score1": "2", "score2": "0", "nextMatchId": "r16_4", "nextSlot": "team2" }, { "id": "r32_9", "team1": "Brazil", "team2": "Japan", "score1": "2", "score2": "1", "nextMatchId": "r16_5", "nextSlot": "team1" }, { "id": "r32_10", "team1": "Ivory Coast", "team2": "Norway", "score1": "2", "score2": "0", "nextMatchId": "r16_5", "nextSlot": "team2" }, { "id": "r32_11", "team1": "Mexico", "team2": "Ecuador", "score1": "2", "score2": "1", "nextMatchId": "r16_6", "nextSlot": "team1" }, { "id": "r32_12", "team1": "England", "team2": "Congo DR", "score1": "2", "score2": "0", "nextMatchId": "r16_6", "nextSlot": "team2" }, { "id": "r32_13", "team1": "Argentina", "team2": "Cape Verde", "score1": "3", "score2": "0", "nextMatchId": "r16_7", "nextSlot": "team1" }, { "id": "r32_14", "team1": "Australia", "team2": "Egypt", "score1": "0", "score2": "1", "nextMatchId": "r16_7", "nextSlot": "team2" }, { "id": "r32_15", "team1": "Switzerland", "team2": "Algeria", "score1": "1", "score2": "3", "nextMatchId": "r16_8", "nextSlot": "team1" }, { "id": "r32_16", "team1": "Colombia", "team2": "Ghana", "score1": "0", "score2": "1", "nextMatchId": "r16_8", "nextSlot": "team2" }], "roundOf16": [{ "id": "r16_1", "team1": "Germany", "team2": "France", "score1": "2", "score2": "1", "nextMatchId": "qf_1", "nextSlot": "team1" }, { "id": "r16_2", "team1": "Canada", "team2": "Netherlands", "score1": "0", "score2": "2", "nextMatchId": "qf_1", "nextSlot": "team2" }, { "id": "r16_3", "team1": "Portugal", "team2": "Spain", "score1": "1", "score2": "2", "nextMatchId": "qf_2", "nextSlot": "team1" }, { "id": "r16_4", "team1": "USA", "team2": "Belgium", "score1": "3", "score2": "2", "nextMatchId": "qf_2", "nextSlot": "team2" }, { "id": "r16_5", "team1": "Brazil", "team2": "Ivory Coast", "score1": "2", "score2": "0", "nextMatchId": "qf_3", "nextSlot": "team1" }, { "id": "r16_6", "team1": "Mexico", "team2": "England", "score1": "1", "score2": "2", "nextMatchId": "qf_3", "nextSlot": "team2" }, { "id": "r16_7", "team1": "Argentina", "team2": "Egypt", "score1": "2", "score2": "0", "nextMatchId": "qf_4", "nextSlot": "team1" }, { "id": "r16_8", "team1": "Algeria", "team2": "Ghana", "score1": "1", "score2": "0", "nextMatchId": "qf_4", "nextSlot": "team2" }], "quarterFinals": [{ "id": "qf_1", "team1": "Germany", "team2": "Netherlands", "score1": "3", "score2": "1", "nextMatchId": "sf_1", "nextSlot": "team1" }, { "id": "qf_2", "team1": "Spain", "team2": "USA", "score1": "1", "score2": "2", "nextMatchId": "sf_1", "nextSlot": "team2" }, { "id": "qf_3", "team1": "Brazil", "team2": "England", "score1": "1", "score2": "0", "nextMatchId": "sf_2", "nextSlot": "team1" }, { "id": "qf_4", "team1": "Argentina", "team2": "Algeria", "score1": "3", "score2": "1", "nextMatchId": "sf_2", "nextSlot": "team2" }], "semiFinals": [{ "id": "sf_1", "team1": "Germany", "team2": "USA", "score1": "3", "score2": "2", "nextMatchId": "final_1", "nextSlot": "team1", "loserMatchId": "tp_1", "loserSlot": "team1" }, { "id": "sf_2", "team1": "Brazil", "team2": "Argentina", "score1": "2", "score2": "3", "nextMatchId": "final_1", "nextSlot": "team2", "loserMatchId": "tp_1", "loserSlot": "team2" }], "final": [{ "id": "final_1", "team1": "Germany", "team2": "Argentina", "score1": "2", "score2": "1", "nextMatchId": "champ", "nextSlot": null }], "thirdPlace": [{ "id": "tp_1", "team1": "USA", "team2": "Brazil", "score1": "2", "score2": "1", "nextMatchId": null, "nextSlot": null }], "champion": "Germany" } }, { "id": "1782785725349", "name": "Sol", "bracket": { "roundOf32": [{ "id": "r32_1", "team1": "Germany", "team2": "Paraguay", "score1": "3", "score2": "1", "nextMatchId": "r16_1", "nextSlot": "team1" }, { "id": "r32_2", "team1": "France", "team2": "Sweden", "score1": "3", "score2": "1", "nextMatchId": "r16_1", "nextSlot": "team2" }, { "id": "r32_3", "team1": "South Africa", "team2": "Canada", "score1": "0", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team1" }, { "id": "r32_4", "team1": "Netherlands", "team2": "Morocco", "score1": "2", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team2" }, { "id": "r32_5", "team1": "Portugal", "team2": "Croatia", "score1": "1", "score2": "2", "nextMatchId": "r16_3", "nextSlot": "team1" }, { "id": "r32_6", "team1": "Spain", "team2": "Austria", "score1": "2", "score2": "0", "nextMatchId": "r16_3", "nextSlot": "team2" }, { "id": "r32_7", "team1": "USA", "team2": "Bosnia and Herz.", "score1": "3", "score2": "1", "nextMatchId": "r16_4", "nextSlot": "team1" }, { "id": "r32_8", "team1": "Belgium", "team2": "Senegal", "score1": "2", "score2": "1", "nextMatchId": "r16_4", "nextSlot": "team2" }, { "id": "r32_9", "team1": "Brazil", "team2": "Japan", "score1": "1", "score2": "0", "nextMatchId": "r16_5", "nextSlot": "team1" }, { "id": "r32_10", "team1": "Ivory Coast", "team2": "Norway", "score1": "2", "score2": "1", "nextMatchId": "r16_5", "nextSlot": "team2" }, { "id": "r32_11", "team1": "Mexico", "team2": "Ecuador", "score1": "1", "score2": "2", "nextMatchId": "r16_6", "nextSlot": "team1" }, { "id": "r32_12", "team1": "England", "team2": "Congo DR", "score1": "3", "score2": "1", "nextMatchId": "r16_6", "nextSlot": "team2" }, { "id": "r32_13", "team1": "Argentina", "team2": "Cape Verde", "score1": "3", "score2": "1", "nextMatchId": "r16_7", "nextSlot": "team1" }, { "id": "r32_14", "team1": "Australia", "team2": "Egypt", "score1": "1", "score2": "2", "nextMatchId": "r16_7", "nextSlot": "team2" }, { "id": "r32_15", "team1": "Switzerland", "team2": "Algeria", "score1": "2", "score2": "1", "nextMatchId": "r16_8", "nextSlot": "team1" }, { "id": "r32_16", "team1": "Colombia", "team2": "Ghana", "score1": "2", "score2": "0", "nextMatchId": "r16_8", "nextSlot": "team2" }], "roundOf16": [{ "id": "r16_1", "team1": "Germany", "team2": "France", "score1": "2", "score2": "3", "nextMatchId": "qf_1", "nextSlot": "team1" }, { "id": "r16_2", "team1": "Canada", "team2": "Netherlands", "score1": "1", "score2": "2", "nextMatchId": "qf_1", "nextSlot": "team2" }, { "id": "r16_3", "team1": "Croatia", "team2": "Spain", "score1": "1", "score2": "2", "nextMatchId": "qf_2", "nextSlot": "team1" }, { "id": "r16_4", "team1": "USA", "team2": "Belgium", "score1": "2", "score2": "1", "nextMatchId": "qf_2", "nextSlot": "team2" }, { "id": "r16_5", "team1": "Brazil", "team2": "Ivory Coast", "score1": "5", "score2": "4", "nextMatchId": "qf_3", "nextSlot": "team1" }, { "id": "r16_6", "team1": "Ecuador", "team2": "England", "score1": "2", "score2": "1", "nextMatchId": "qf_3", "nextSlot": "team2" }, { "id": "r16_7", "team1": "Argentina", "team2": "Egypt", "score1": "3", "score2": "1", "nextMatchId": "qf_4", "nextSlot": "team1" }, { "id": "r16_8", "team1": "Switzerland", "team2": "Colombia", "score1": "1", "score2": "3", "nextMatchId": "qf_4", "nextSlot": "team2" }], "quarterFinals": [{ "id": "qf_1", "team1": "France", "team2": "Netherlands", "score1": "3", "score2": "2", "nextMatchId": "sf_1", "nextSlot": "team1" }, { "id": "qf_2", "team1": "Spain", "team2": "USA", "score1": "1", "score2": "2", "nextMatchId": "sf_1", "nextSlot": "team2" }, { "id": "qf_3", "team1": "Brazil", "team2": "Ecuador", "score1": "2", "score2": "3", "nextMatchId": "sf_2", "nextSlot": "team1" }, { "id": "qf_4", "team1": "Argentina", "team2": "Colombia", "score1": "1", "score2": "2", "nextMatchId": "sf_2", "nextSlot": "team2" }], "semiFinals": [{ "id": "sf_1", "team1": "France", "team2": "USA", "score1": "2", "score2": "1", "nextMatchId": "final_1", "nextSlot": "team1", "loserMatchId": "tp_1", "loserSlot": "team1" }, { "id": "sf_2", "team1": "Ecuador", "team2": "Colombia", "score1": "1", "score2": "2", "nextMatchId": "final_1", "nextSlot": "team2", "loserMatchId": "tp_1", "loserSlot": "team2" }], "final": [{ "id": "final_1", "team1": "France", "team2": "Colombia", "score1": "1", "score2": "2", "nextMatchId": "champ", "nextSlot": null }], "thirdPlace": [{ "id": "tp_1", "team1": "USA", "team2": "Ecuador", "score1": "3", "score2": "1", "nextMatchId": null, "nextSlot": null }], "champion": "Colombia" } }, { "id": "1782786042387", "name": "Yassine", "bracket": { "roundOf32": [{ "id": "r32_1", "team1": "Germany", "team2": "Paraguay", "score1": "1", "score2": "0", "nextMatchId": "r16_1", "nextSlot": "team1" }, { "id": "r32_2", "team1": "France", "team2": "Sweden", "score1": "1", "score2": "0", "nextMatchId": "r16_1", "nextSlot": "team2" }, { "id": "r32_3", "team1": "South Africa", "team2": "Canada", "score1": "0", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team1" }, { "id": "r32_4", "team1": "Netherlands", "team2": "Morocco", "score1": "0", "score2": "1", "nextMatchId": "r16_2", "nextSlot": "team2" }, { "id": "r32_5", "team1": "Portugal", "team2": "Croatia", "score1": "1", "score2": "0", "nextMatchId": "r16_3", "nextSlot": "team1" }, { "id": "r32_6", "team1": "Spain", "team2": "Austria", "score1": "1", "score2": "0", "nextMatchId": "r16_3", "nextSlot": "team2" }, { "id": "r32_7", "team1": "USA", "team2": "Bosnia and Herz.", "score1": "1", "score2": "0", "nextMatchId": "r16_4", "nextSlot": "team1" }, { "id": "r32_8", "team1": "Belgium", "team2": "Senegal", "score1": "1", "score2": "0", "nextMatchId": "r16_4", "nextSlot": "team2" }, { "id": "r32_9", "team1": "Brazil", "team2": "Japan", "score1": "1", "score2": "0", "nextMatchId": "r16_5", "nextSlot": "team1" }, { "id": "r32_10", "team1": "Ivory Coast", "team2": "Norway", "score1": "1", "score2": "0", "nextMatchId": "r16_5", "nextSlot": "team2" }, { "id": "r32_11", "team1": "Mexico", "team2": "Ecuador", "score1": "1", "score2": "0", "nextMatchId": "r16_6", "nextSlot": "team1" }, { "id": "r32_12", "team1": "England", "team2": "Congo DR", "score1": "1", "score2": "0", "nextMatchId": "r16_6", "nextSlot": "team2" }, { "id": "r32_13", "team1": "Argentina", "team2": "Cape Verde", "score1": "1", "score2": "0", "nextMatchId": "r16_7", "nextSlot": "team1" }, { "id": "r32_14", "team1": "Australia", "team2": "Egypt", "score1": "1", "score2": "0", "nextMatchId": "r16_7", "nextSlot": "team2" }, { "id": "r32_15", "team1": "Switzerland", "team2": "Algeria", "score1": "1", "score2": "0", "nextMatchId": "r16_8", "nextSlot": "team1" }, { "id": "r32_16", "team1": "Colombia", "team2": "Ghana", "score1": "1", "score2": "0", "nextMatchId": "r16_8", "nextSlot": "team2" }], "roundOf16": [{ "id": "r16_1", "team1": "Germany", "team2": "France", "score1": "0", "score2": "1", "nextMatchId": "qf_1", "nextSlot": "team1" }, { "id": "r16_2", "team1": "Canada", "team2": "Morocco", "score1": "0", "score2": "1", "nextMatchId": "qf_1", "nextSlot": "team2" }, { "id": "r16_3", "team1": "Portugal", "team2": "Spain", "score1": "0", "score2": "1", "nextMatchId": "qf_2", "nextSlot": "team1" }, { "id": "r16_4", "team1": "USA", "team2": "Belgium", "score1": "1", "score2": "0", "nextMatchId": "qf_2", "nextSlot": "team2" }, { "id": "r16_5", "team1": "Brazil", "team2": "Ivory Coast", "score1": "1", "score2": "0", "nextMatchId": "qf_3", "nextSlot": "team1" }, { "id": "r16_6", "team1": "Mexico", "team2": "England", "score1": "0", "score2": "1", "nextMatchId": "qf_3", "nextSlot": "team2" }, { "id": "r16_7", "team1": "Argentina", "team2": "Australia", "score1": "1", "score2": "0", "nextMatchId": "qf_4", "nextSlot": "team1" }, { "id": "r16_8", "team1": "Switzerland", "team2": "Colombia", "score1": "0", "score2": "1", "nextMatchId": "qf_4", "nextSlot": "team2" }], "quarterFinals": [{ "id": "qf_1", "team1": "France", "team2": "Morocco", "score1": "1", "score2": "0", "nextMatchId": "sf_1", "nextSlot": "team1" }, { "id": "qf_2", "team1": "Spain", "team2": "USA", "score1": "1", "score2": "0", "nextMatchId": "sf_1", "nextSlot": "team2" }, { "id": "qf_3", "team1": "Brazil", "team2": "England", "score1": "1", "score2": "0", "nextMatchId": "sf_2", "nextSlot": "team1" }, { "id": "qf_4", "team1": "Argentina", "team2": "Colombia", "score1": "1", "score2": "0", "nextMatchId": "sf_2", "nextSlot": "team2" }], "semiFinals": [{ "id": "sf_1", "team1": "France", "team2": "Spain", "score1": "1", "score2": "0", "nextMatchId": "final_1", "nextSlot": "team1", "loserMatchId": "tp_1", "loserSlot": "team1" }, { "id": "sf_2", "team1": "Brazil", "team2": "Argentina", "score1": "1", "score2": "0", "nextMatchId": "final_1", "nextSlot": "team2", "loserMatchId": "tp_1", "loserSlot": "team2" }], "final": [{ "id": "final_1", "team1": "France", "team2": "Brazil", "score1": "1", "score2": "0", "nextMatchId": "champ", "nextSlot": null }], "thirdPlace": [{ "id": "tp_1", "team1": "Spain", "team2": "Argentina", "score1": "1", "score2": "0", "nextMatchId": null, "nextSlot": null }], "champion": "France" } }] };
+  </script>
+
+  <script type="module">
+    import { html, render, useState, useEffect } from 'https://unpkg.com/htm/preact/standalone.module.js';
+
+    // Base template
+    const initialData = {
+      roundOf32: [
+        // --- LEFT BRACKET (Feeds to Semi-Final 1) ---
+        // Top Quadrant
+        { id: 'r32_1', team1: 'Germany', team2: 'Paraguay', score1: '', score2: '', nextMatchId: 'r16_1', nextSlot: 'team1' },
+        { id: 'r32_2', team1: 'France', team2: 'Sweden', score1: '', score2: '', nextMatchId: 'r16_1', nextSlot: 'team2' },
+        { id: 'r32_3', team1: 'South Africa', team2: 'Canada', score1: '', score2: '', nextMatchId: 'r16_2', nextSlot: 'team1' },
+        { id: 'r32_4', team1: 'Netherlands', team2: 'Morocco', score1: '', score2: '', nextMatchId: 'r16_2', nextSlot: 'team2' },
+        // Bottom Quadrant
+        { id: 'r32_5', team1: 'Portugal', team2: 'Croatia', score1: '', score2: '', nextMatchId: 'r16_3', nextSlot: 'team1' },
+        { id: 'r32_6', team1: 'Spain', team2: 'Austria', score1: '', score2: '', nextMatchId: 'r16_3', nextSlot: 'team2' },
+        { id: 'r32_7', team1: 'USA', team2: 'Bosnia and Herz.', score1: '', score2: '', nextMatchId: 'r16_4', nextSlot: 'team1' },
+        { id: 'r32_8', team1: 'Belgium', team2: 'Senegal', score1: '', score2: '', nextMatchId: 'r16_4', nextSlot: 'team2' },
+
+        // --- RIGHT BRACKET (Feeds to Semi-Final 2) ---
+        // Top Quadrant
+        { id: 'r32_9', team1: 'Brazil', team2: 'Japan', score1: '', score2: '', nextMatchId: 'r16_5', nextSlot: 'team1' },
+        { id: 'r32_10', team1: 'Ivory Coast', team2: 'Norway', score1: '', score2: '', nextMatchId: 'r16_5', nextSlot: 'team2' },
+        { id: 'r32_11', team1: 'Mexico', team2: 'Ecuador', score1: '', score2: '', nextMatchId: 'r16_6', nextSlot: 'team1' },
+        { id: 'r32_12', team1: 'England', team2: 'Congo DR', score1: '', score2: '', nextMatchId: 'r16_6', nextSlot: 'team2' },
+        // Bottom Quadrant
+        { id: 'r32_13', team1: 'Argentina', team2: 'Cape Verde', score1: '', score2: '', nextMatchId: 'r16_7', nextSlot: 'team1' },
+        { id: 'r32_14', team1: 'Australia', team2: 'Egypt', score1: '', score2: '', nextMatchId: 'r16_7', nextSlot: 'team2' },
+        { id: 'r32_15', team1: 'Switzerland', team2: 'Algeria', score1: '', score2: '', nextMatchId: 'r16_8', nextSlot: 'team1' },
+        { id: 'r32_16', team1: 'Colombia', team2: 'Ghana', score1: '', score2: '', nextMatchId: 'r16_8', nextSlot: 'team2' },
+      ],
+      roundOf16: [
+        { id: 'r16_1', team1: '', team2: '', score1: '', score2: '', nextMatchId: 'qf_1', nextSlot: 'team1' },
+        { id: 'r16_2', team1: '', team2: '', score1: '', score2: '', nextMatchId: 'qf_1', nextSlot: 'team2' },
+        { id: 'r16_3', team1: '', team2: '', score1: '', score2: '', nextMatchId: 'qf_2', nextSlot: 'team1' },
+        { id: 'r16_4', team1: '', team2: '', score1: '', score2: '', nextMatchId: 'qf_2', nextSlot: 'team2' },
+        { id: 'r16_5', team1: '', team2: '', score1: '', score2: '', nextMatchId: 'qf_3', nextSlot: 'team1' },
+        { id: 'r16_6', team1: '', team2: '', score1: '', score2: '', nextMatchId: 'qf_3', nextSlot: 'team2' },
+        { id: 'r16_7', team1: '', team2: '', score1: '', score2: '', nextMatchId: 'qf_4', nextSlot: 'team1' },
+        { id: 'r16_8', team1: '', team2: '', score1: '', score2: '', nextMatchId: 'qf_4', nextSlot: 'team2' },
+      ],
+      quarterFinals: [
+        { id: 'qf_1', team1: '', team2: '', score1: '', score2: '', nextMatchId: 'sf_1', nextSlot: 'team1' },
+        { id: 'qf_2', team1: '', team2: '', score1: '', score2: '', nextMatchId: 'sf_1', nextSlot: 'team2' },
+        { id: 'qf_3', team1: '', team2: '', score1: '', score2: '', nextMatchId: 'sf_2', nextSlot: 'team1' },
+        { id: 'qf_4', team1: '', team2: '', score1: '', score2: '', nextMatchId: 'sf_2', nextSlot: 'team2' },
+      ],
+      semiFinals: [
+        { id: 'sf_1', team1: '', team2: '', score1: '', score2: '', nextMatchId: 'final_1', nextSlot: 'team1', loserMatchId: 'tp_1', loserSlot: 'team1' },
+        { id: 'sf_2', team1: '', team2: '', score1: '', score2: '', nextMatchId: 'final_1', nextSlot: 'team2', loserMatchId: 'tp_1', loserSlot: 'team2' },
+      ],
+      final: [
+        { id: 'final_1', team1: '', team2: '', score1: '', score2: '', nextMatchId: 'champ', nextSlot: null }
+      ],
+      thirdPlace: [
+        { id: 'tp_1', team1: '', team2: '', score1: '', score2: '', nextMatchId: null, nextSlot: null }
+      ],
+      champion: ''
+    };
+
+    const handleClearAllData = () => {
+      if (confirm("Are you sure?")) {
+        // Clear the saved data
+        localStorage.removeItem('wc2026_users');
+        localStorage.removeItem('wc2026_official');
+        // Check if google exists (i.e., running in Google Apps Script environment)
+        if (typeof google !== 'undefined') {
+
+          // Ask the backend for the real URL, then reload!
+          google.script.run.withSuccessHandler((myWebAppUrl) => {
+            console.log("Got the real URL from the backend:", myWebAppUrl);
+
+            // Force the main browser window to refresh to that URL
+            window.open(myWebAppUrl, "_top");
+          }).getWebAppUrl();
+        } else {
+          localStorage.clear(); // Clear local storage for local testing
+          location.reload(); // Fallback for local testing
+        }
+      }
+    };
+
+    // --- SCORING LOGIC ---
+    function getMatchPoints(userM, actualM) {
+      if (!actualM || actualM.score1 === '' || actualM.score2 === '') return null; // Real match not played yet
+      if (userM.score1 === '' || userM.score2 === '') return 0; // User missed prediction
+
+      const u1 = parseInt(userM.score1);
+      const u2 = parseInt(userM.score2);
+      const a1 = parseInt(actualM.score1);
+      const a2 = parseInt(actualM.score2);
+
+      const userWinner = u1 > u2 ? userM.team1 : userM.team2;
+      const actualWinner = a1 > a2 ? actualM.team1 : actualM.team2;
+
+      const sameTeams = userM.team1 === actualM.team1 && userM.team2 === actualM.team2;
+      const exactScore = sameTeams && (u1 === a1 && u2 === a2);
+
+      if (exactScore) return 7;
+      if (userWinner === actualWinner && userWinner !== '') return 5;
+
+      return 0;
+    }
+
+    // --- HELPER TO CALCULATE FULL USER SCORE ---
+    function calculateTotalScore(userBracket, actualBracket) {
+      let total = 0;
+      const rounds = ['roundOf32', 'roundOf16', 'quarterFinals', 'semiFinals', 'final', 'thirdPlace'];
+      rounds.forEach(round => {
+        userBracket[round].forEach((userM, idx) => {
+          const pts = getMatchPoints(userM, actualBracket[round][idx]);
+          if (pts) total += pts;
+        });
+      });
+      return total;
+    }
+
+    // --- COMPONENTS ---
+    function MatchCard({ match, actualMatch, mode, onScore }) {
+      const points = (mode === 'user') ? getMatchPoints(match, actualMatch) : null;
+
+      const pointsBadge = (points !== null) ? html`
+        <div class="points-badge ${points === 7 ? 'pts-7' : points === 5 ? 'pts-5' : 'pts-0'}">
+          ${points > 0 ? '+' : ''}${points}
+        </div>
+      ` : null;
+
+      return html`
+        <div class="match-card">
+          ${pointsBadge}
+          <div class="team-row">
+            <span class="team-name">${match.team1}</span>
+            <input type="text" class="score-input" value=${match.score1} onInput=${(e) => onScore(true, e.target.value.replace(/[^0-9]/g, ''))} disabled=${match.team1 === '' || match.team2 === ''} maxLength="2" />
+          </div>
+          <div class="team-row">
+            <span class="team-name">${match.team2}</span>
+            <input type="text" class="score-input" value=${match.score2} onInput=${(e) => onScore(false, e.target.value.replace(/[^0-9]/g, ''))} disabled=${match.team1 === '' || match.team2 === ''} maxLength="2" />
+          </div>
+        </div>
+      `;
+    }
+
+    function WorldCupBracket() {
+      const [users, setUsers] = useState(() => {
+        const saved = localStorage.getItem('wc2026_users');
+        if (saved) return JSON.parse(saved);
+        // Use pasted public data if available, otherwise default to Player 1
+        return publicData && publicData.users ? publicData.users : [{ id: '1', name: 'Player 1', bracket: JSON.parse(JSON.stringify(initialData)) }];
+      });
+
+      const [actualBracket, setActualBracket] = useState(() => {
+        const saved = localStorage.getItem('wc2026_official');
+        if (saved) return JSON.parse(saved);
+        // Use pasted official results if available, otherwise use blank template
+        return publicData && publicData.officialResults ? publicData.officialResults : JSON.parse(JSON.stringify(initialData));
+      });
+
+      const [activeUserId, setActiveUserId] = useState(users[0].id);
+      const [mode, setMode] = useState('leaderboard'); // 'user', 'actual', or 'leaderboard'
+      const [newUserName, setNewUserName] = useState('');
+
+      useEffect(() => { localStorage.setItem('wc2026_users', JSON.stringify(users)); }, [users]);
+      useEffect(() => { localStorage.setItem('wc2026_official', JSON.stringify(actualBracket)); }, [actualBracket]);
+
+      const currentUser = users.find(u => u.id === activeUserId);
+      const currentBracket = mode === 'user' ? currentUser.bracket : actualBracket;
+
+      const handleClearOfficial = () => {
+        if (confirm("Are you sure you want to clear ALL Official Results? This cannot be undone.")) {
+          setActualBracket(JSON.parse(JSON.stringify(initialData)));
+        }
+      };
+
+      const handleAddUser = (e) => {
+        e.preventDefault();
+        if (!newUserName.trim()) return;
+
+        const newUser = {
+          id: Date.now().toString(),
+          name: newUserName.trim(),
+          bracket: JSON.parse(JSON.stringify(initialData))
+        };
+
+        // Logic: If the only user is the default "Player 1", replace them.
+        // Otherwise, add the new user to the existing list.
+        let updatedUsers;
+        if (users.length === 1 && users[0].name === 'Player 1') {
+          updatedUsers = [newUser];
+        } else {
+          updatedUsers = [...users, newUser];
+        }
+
+        setUsers(updatedUsers);
+        setActiveUserId(newUser.id);
+        setNewUserName('');
+      };
+
+      const handleRenameUser = () => {
+        const newName = prompt(`Enter a new name for ${currentUser.name}:`, currentUser.name);
+        if (newName && newName.trim() !== '') setUsers(users.map(u => u.id === activeUserId ? { ...u, name: newName.trim() } : u));
+      };
+
+      const handleDeleteUser = () => {
+        if (confirm(`Are you sure you want to delete ${currentUser.name}?`)) {
+          const updatedUsers = users.filter(u => u.id !== activeUserId);
+
+          if (updatedUsers.length > 0) {
+            setUsers(updatedUsers);
+            setActiveUserId(updatedUsers[0].id); // Switch to the first remaining user
+          } else {
+            // If we deleted the last user, clear storage and reset to a blank state
+            localStorage.removeItem('wc2026_users');
+            setUsers([{ id: '1', name: 'Player 1', bracket: JSON.parse(JSON.stringify(initialData)) }]);
+            setActiveUserId('1');
+            alert("All users deleted. Resetting to default.");
+          }
+        }
+      };
+
+      const handleExportData = () => {
+        const exportObj = { officialResults: actualBracket, users: users };
+        // Removed the ', null, 2' so it outputs on a single line
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
+        const anchor = document.createElement('a'); anchor.setAttribute("href", dataStr); anchor.setAttribute("download", "wc2026_multiplayer_data.json");
+        document.body.appendChild(anchor); anchor.click(); anchor.remove();
+      };
+
+      const handleImportData = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const importedData = JSON.parse(event.target.result);
+            if (importedData.users && importedData.officialResults) {
+              setUsers(importedData.users); setActualBracket(importedData.officialResults); setActiveUserId(importedData.users[0].id); alert("Data successfully imported!");
+            } else alert("Invalid file format.");
+          } catch (error) { alert("Error parsing file."); }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+      };
+
+      const handleScoreUpdate = (roundKey, matchIndex, isTeam1, value) => {
+        const newBracket = JSON.parse(JSON.stringify(currentBracket));
+        const currentMatch = newBracket[roundKey][matchIndex];
+
+        if (isTeam1) currentMatch.score1 = value; else currentMatch.score2 = value;
+
+        const s1 = parseInt(currentMatch.score1);
+        const s2 = parseInt(currentMatch.score2);
+        if (isNaN(s1) || isNaN(s2)) {
+          if (currentMatch.nextMatchId) {
+            // FIX: Check if the next match is the champion slot
+            if (currentMatch.nextMatchId === 'champ') {
+              newBracket.champion = '';
+            } else {
+              const [targetPrefix, targetNum] = currentMatch.nextMatchId.split('_');
+              const targetRoundsMap = { r16: 'roundOf16', qf: 'quarterFinals', sf: 'semiFinals', final: 'final', tp: 'thirdPlace' };
+              const targetRoundKey = targetRoundsMap[targetPrefix];
+              newBracket[targetRoundKey][parseInt(targetNum) - 1][currentMatch.nextSlot] = '';
+            }
+          }
+        } else {
+          if (!isNaN(s1) && !isNaN(s2) && s1 !== s2) {
+            const winner = s1 > s2 ? currentMatch.team1 : currentMatch.team2;
+            const loser = s1 > s2 ? currentMatch.team2 : currentMatch.team1;
+
+            if (currentMatch.nextMatchId) {
+              if (currentMatch.nextMatchId === 'champ') newBracket.champion = winner;
+              else {
+                const [targetPrefix, targetNum] = currentMatch.nextMatchId.split('_');
+                const targetRoundsMap = { r16: 'roundOf16', qf: 'quarterFinals', sf: 'semiFinals', final: 'final', tp: 'thirdPlace' };
+                const targetRoundKey = targetRoundsMap[targetPrefix];
+                newBracket[targetRoundKey][parseInt(targetNum) - 1][currentMatch.nextSlot] = winner;
+              }
+            }
+
+            if (currentMatch.loserMatchId) {
+              const [loserPrefix, loserNum] = currentMatch.loserMatchId.split('_');
+              newBracket.thirdPlace[parseInt(loserNum) - 1][currentMatch.loserSlot] = loser;
+            }
+          }
+        }
+
+        if (mode === 'actual') setActualBracket(newBracket);
+        else setUsers(users.map(u => u.id === activeUserId ? { ...u, bracket: newBracket } : u));
+      };
+
+      const renderColumn = (matches, roundKey, startIndex = 0) => html`
+        <div class="round-column">
+          ${matches.map((match, idx) => html`
+            <div class="match-wrapper">
+              <${MatchCard}
+                key=${match.id} match=${match} actualMatch=${actualBracket[roundKey][startIndex + idx]} mode=${mode}
+                onScore=${(isTeam1, val) => handleScoreUpdate(roundKey, startIndex + idx, isTeam1, val)}
+              />
+            </div>
+          `)}
+        </div>
+      `;
+
+      // Sort users by score for the leaderboard
+      const rankedUsers = [...users]
+        .map(u => ({ ...u, score: calculateTotalScore(u.bracket, actualBracket) }))
+        .sort((a, b) => b.score - a.score);
+
+      return html`
+        <div>
+          <h1>Predictions for the 2026 World Cup</h1>
+
+          <div class="control-panel">
+            <div class="top-controls">
+              <div class="mode-toggle">
+                <button class="btn ${mode === 'leaderboard' ? 'active' : ''}" onClick=${() => setMode('leaderboard')}>🏆 Leaderboard</button>
+                <button class="btn ${mode === 'actual' ? 'active' : ''}" onClick=${() => setMode('actual')}>Official Results</button>
+                <button class="btn ${mode === 'user' ? 'active' : ''}" onClick=${() => setMode('user')}>User Predictions</button>
+                <button class="btn" onClick=${handleClearAllData}>Reset Data</button>
+              </div>
+
+              <div class="data-controls">
+                ${mode === 'actual' && html`
+                  <button class="btn" style={{ backgroundColor: '#ef4444', color: 'white' }} onClick=${handleClearOfficial}>
+                    🗑️ Clear Official
+                  </button>
+                `}
+                <label class="btn import">📂 Import <input type="file" accept=".json" style="display: none;" onChange=${handleImportData} /></label>
+                <button class="btn export" onClick=${handleExportData}>💾 Export</button>
+              </div>
+            </div>
+
+            ${mode === 'user' && html`
+              <div class="user-manager">
+                <div class="user-actions">
+                  <select class="user-select" value=${activeUserId} onChange=${e => setActiveUserId(e.target.value)}>
+                    ${users.map(u => html`<option key=${u.id} value=${u.id}>${u.name}</option>`)}
+                  </select>
+                  <button class="icon-btn" onClick=${handleRenameUser} title="Rename User">✏️</button>
+                  <button class="icon-btn" onClick=${handleDeleteUser} title="Delete User" disabled=${users.length < 1}>🗑️</button>
+                </div>
+                <form class="add-user-form" onSubmit=${handleAddUser}>
+                  <input type="text" class="add-user-input" placeholder="New User Name..." value=${newUserName} onInput=${e => setNewUserName(e.target.value)} />
+                  <button type="submit" class="btn">Add</button>
+                </form>
+              </div>
+            `}
+
+            ${mode === 'user' && html`<div class="total-points">${currentUser.name}'s Score: <span>${calculateTotalScore(currentUser.bracket, actualBracket)}</span> pts</div>`}
+            ${mode === 'actual' && html`<div class="total-points admin-mode">Official Results</div>`}
+            ${mode === 'leaderboard' && html`<div class="total-points" style="color: #cbd5e1;">Leaderboard (Max Possible: 224 pts)</div>`}
+          </div>
+
+          ${mode === 'leaderboard' ? html`
+            <div class="leaderboard-container">
+              <table class="leaderboard-table">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Player Name</th>
+                    <th>Total Points</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rankedUsers.map((u, index) => html`
+                    <tr>
+                      <td class="rank-cell">
+                        ${index === 0 ? '🥇' : index === 1 ? '2nd' : index === 2 ? '3rd' : `${index + 1}th`}
+                      </td>
+                      <td>${u.name}</td>
+                      <td><strong>${u.score}</strong> pts</td>
+                    </tr>
+                  `)}
+                </tbody>
+              </table>
+            </div>
+          ` : html`
+            <div class="bracket-board">
+              <!-- LEFT BRACKET -->
+              <div class="half-bracket left-bracket">
+                ${renderColumn(currentBracket.roundOf32.slice(0, 8), 'roundOf32', 0)}
+                ${renderColumn(currentBracket.roundOf16.slice(0, 4), 'roundOf16', 0)}
+                ${renderColumn(currentBracket.quarterFinals.slice(0, 2), 'quarterFinals', 0)}
+                ${renderColumn([currentBracket.semiFinals[0]], 'semiFinals', 0)}
+              </div>
+
+              <!-- CENTER COLUMN -->
+              <div class="final-column">
+                <div class="champion-box">
+                  <div class="champion-label">🏆 World Champion</div>
+                  <div class="champion-name">${currentBracket.champion}</div>
+                </div>
+                <div class="final-match-container">
+                  <h2>Final</h2>
+                  ${renderColumn(currentBracket.final, 'final', 0)}
+                </div>
+                <div class="third-place-container">
+                  <h3>Third Place Match</h3>
+                  ${renderColumn(currentBracket.thirdPlace, 'thirdPlace', 0)}
+                </div>
+              </div>
+
+              <!-- RIGHT BRACKET -->
+              <div class="half-bracket right-bracket">
+                ${renderColumn(currentBracket.roundOf32.slice(8, 16), 'roundOf32', 8)}
+                ${renderColumn(currentBracket.roundOf16.slice(4, 8), 'roundOf16', 4)}
+                ${renderColumn(currentBracket.quarterFinals.slice(2, 4), 'quarterFinals', 2)}
+                ${renderColumn([currentBracket.semiFinals[1]], 'semiFinals', 1)}
+              </div>
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    render(html`<${WorldCupBracket} />`, document.getElementById('root'));
+  </script>
+</body>
+
+</html>
