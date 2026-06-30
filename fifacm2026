@@ -967,7 +967,7 @@
 
       return html`
         <div>
-          <h1>11 Predictions for the 2026 World Cup</h1>
+          <h1>Predictions for the 2026 World Cup</h1>
 
           <div class="control-panel">
             <div class="top-controls">
