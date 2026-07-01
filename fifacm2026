@@ -881,13 +881,16 @@
       const currentUser = users.find(u => u.id === activeUserId);
       const currentBracket = mode === 'user' ? currentUser.bracket : actualBracket;
 
-      const handleSimulateWin = () => {
+const handleSimulateWin = () => {
         const selectedUser = users.find(u => u.id === simulatorUserId);
         if (!selectedUser) return;
 
         const newActualBracket = JSON.parse(JSON.stringify(actualBracket));
         const userBracket = selectedUser.bracket;
+
+        // Ordered chronologically so winners naturally cascade to the next rounds
         const rounds = ['roundOf32', 'roundOf16', 'quarterFinals', 'semiFinals', 'final', 'thirdPlace'];
+        const targetRoundsMap = { r16: 'roundOf16', qf: 'quarterFinals', sf: 'semiFinals', final: 'final', tp: 'thirdPlace' };
 
         rounds.forEach(round => {
           newActualBracket[round].forEach((actualMatch, idx) => {
@@ -895,25 +898,46 @@
             if (actualMatch.score1 === '' && actualMatch.score2 === '') {
               const userMatch = userBracket[round][idx];
 
-              // Copy scores AND teams so the simulated bracket flows correctly
-              actualMatch.score1 = userMatch.score1;
-              actualMatch.score2 = userMatch.score2;
-              actualMatch.team1 = userMatch.team1;
-              actualMatch.team2 = userMatch.team2;
+              // Only simulate if the user actually made a prediction for this slot
+              if (userMatch.score1 !== '' && userMatch.score2 !== '') {
+                // 1. Copy ONLY the user's scores
+                actualMatch.score1 = userMatch.score1;
+                actualMatch.score2 = userMatch.score2;
+
+                const s1 = parseInt(actualMatch.score1);
+                const s2 = parseInt(actualMatch.score2);
+
+                // 2. Determine the winner using the ACTUAL teams currently in this slot
+                if (!isNaN(s1) && !isNaN(s2) && s1 !== s2 && actualMatch.team1 && actualMatch.team2) {
+                  const winner = s1 > s2 ? actualMatch.team1 : actualMatch.team2;
+                  const loser = s1 > s2 ? actualMatch.team2 : actualMatch.team1;
+
+                  // 3. Push the winner to the next match
+                  if (actualMatch.nextMatchId) {
+                    if (actualMatch.nextMatchId === 'champ') {
+                      newActualBracket.champion = winner;
+                    } else {
+                      const [targetPrefix, targetNum] = actualMatch.nextMatchId.split('_');
+                      const targetRoundKey = targetRoundsMap[targetPrefix];
+                      newActualBracket[targetRoundKey][parseInt(targetNum) - 1][actualMatch.nextSlot] = winner;
+                    }
+                  }
+
+                  // 4. Push the loser to the third-place match if applicable
+                  if (actualMatch.loserMatchId) {
+                    const [loserPrefix, loserNum] = actualMatch.loserMatchId.split('_');
+                    newActualBracket.thirdPlace[parseInt(loserNum) - 1][actualMatch.loserSlot] = loser;
+                  }
+                }
+              }
             }
           });
         });
 
-        // Copy champion if it was empty
-        if (!newActualBracket.champion) {
-          newActualBracket.champion = userBracket.champion;
-        }
-
         setActualBracket(newActualBracket);
         setShowWinnerModal(false);
-        setMode('leaderboard'); // Jump to the leaderboard to see the results!
+        setMode('leaderboard');
       };
-
       const handleClearOfficial = () => {
         if (confirm("Are you sure you want to clear ALL Official Results? This cannot be undone.")) {
           setActualBracket(JSON.parse(JSON.stringify(initialData)));
