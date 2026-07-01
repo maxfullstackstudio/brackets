@@ -565,6 +565,56 @@
       border-top: var(--line-thick) solid var(--line-color);
     }
 
+    /* --- MODAL STYLING --- */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(5px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+
+    .modal-content {
+      background: #0f172a;
+      padding: 30px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+    }
+
+    .modal-content h3 {
+      margin: 0;
+      color: #fff;
+      font-size: 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .modal-content p {
+      margin: 0;
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 10px;
+    }
+
     /* --- RESPONSIVE ADJUSTMENTS --- */
     @media (max-width: 1200px) {
       .round-column {
@@ -821,11 +871,48 @@
       const [mode, setMode] = useState('leaderboard'); // 'user', 'actual', or 'leaderboard'
       const [newUserName, setNewUserName] = useState('');
 
+      // NEW STATE FOR MODAL
+      const [showWinnerModal, setShowWinnerModal] = useState(false);
+      const [simulatorUserId, setSimulatorUserId] = useState(users[0]?.id);
+
       useEffect(() => { localStorage.setItem('wc2026_users', JSON.stringify(users)); }, [users]);
       useEffect(() => { localStorage.setItem('wc2026_official', JSON.stringify(actualBracket)); }, [actualBracket]);
 
       const currentUser = users.find(u => u.id === activeUserId);
       const currentBracket = mode === 'user' ? currentUser.bracket : actualBracket;
+
+      const handleSimulateWin = () => {
+        const selectedUser = users.find(u => u.id === simulatorUserId);
+        if (!selectedUser) return;
+
+        const newActualBracket = JSON.parse(JSON.stringify(actualBracket));
+        const userBracket = selectedUser.bracket;
+        const rounds = ['roundOf32', 'roundOf16', 'quarterFinals', 'semiFinals', 'final', 'thirdPlace'];
+
+        rounds.forEach(round => {
+          newActualBracket[round].forEach((actualMatch, idx) => {
+            // If the official match hasn't been played yet (no scores)
+            if (actualMatch.score1 === '' && actualMatch.score2 === '') {
+              const userMatch = userBracket[round][idx];
+
+              // Copy scores AND teams so the simulated bracket flows correctly
+              actualMatch.score1 = userMatch.score1;
+              actualMatch.score2 = userMatch.score2;
+              actualMatch.team1 = userMatch.team1;
+              actualMatch.team2 = userMatch.team2;
+            }
+          });
+        });
+
+        // Copy champion if it was empty
+        if (!newActualBracket.champion) {
+          newActualBracket.champion = userBracket.champion;
+        }
+
+        setActualBracket(newActualBracket);
+        setShowWinnerModal(false);
+        setMode('leaderboard'); // Jump to the leaderboard to see the results!
+      };
 
       const handleClearOfficial = () => {
         if (confirm("Are you sure you want to clear ALL Official Results? This cannot be undone.")) {
@@ -978,6 +1065,7 @@
                 <button class="btn ${mode === 'actual' ? 'active' : ''}" onClick=${() => setMode('actual')}>Official Results</button>
                 <button class="btn ${mode === 'user' ? 'active' : ''}" onClick=${() => setMode('user')}>User Predictions</button>
                 <button class="btn" onClick=${handleClearAllData}>Reset Data</button>
+                <button class="btn" style="background-color: #8b5cf6; border-color: #7c3aed; color: white;" onClick=${() => { setSimulatorUserId(activeUserId); setShowWinnerModal(true); }}>🔮 Can I Win?</button>
               </div>
 
               <div class="data-controls">
@@ -1070,6 +1158,21 @@
               </div>
             </div>
           `}
+          ${showWinnerModal && html`
+              <div class="modal-overlay">
+                <div class="modal-content">
+                  <h3>🔮 Simulate Scenario</h3>
+                  <p>Select a user to fill all unplayed official matches with their predictions to see if they can still win.</p>
+                  <select class="user-select" value=${simulatorUserId} onChange=${e => setSimulatorUserId(e.target.value)}>
+                    ${users.map(u => html`<option key=${u.id} value=${u.id}>${u.name}</option>`)}
+                  </select>
+                  <div class="modal-actions">
+                    <button class="btn" onClick=${() => setShowWinnerModal(false)}>Cancel</button>
+                    <button class="btn active" onClick=${handleSimulateWin}>Proceed</button>
+                  </div>
+                </div>
+              </div>
+            `}
         </div>
       `;
     }
