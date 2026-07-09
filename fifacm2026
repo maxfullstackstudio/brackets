@@ -1091,6 +1091,24 @@
         .map(u => ({ ...u, score: calculateTotalScore(u.bracket, actualBracket) }))
         .sort((a, b) => b.score - a.score);
 
+      // --- CALCULATE REMAINING POINTS ---
+      let unplayedCount = 0;
+      const allRounds = ['roundOf32', 'roundOf16', 'quarterFinals', 'semiFinals', 'final', 'thirdPlace'];
+      let totalMatches = 0;
+      allRounds.forEach(round => {
+        totalMatches += actualBracket[round].length;
+        actualBracket[round].forEach(match => {
+          // If the official match doesn't have a score yet, it's unplayed
+          if (match.score1 === '' || match.score2 === '') {
+            unplayedCount++;
+          }
+        });
+      });
+
+      const maxRemaining = unplayedCount * 7;
+      const minRemaining = unplayedCount * 5;
+      const maxPossiblePoints = totalMatches * 7;
+
       return html`
         <div>
           <h1>Predictions for the 2026 World Cup</h1>
@@ -1134,7 +1152,8 @@
 
             ${mode === 'user' && html`<div class="total-points">${currentUser.name}'s Score: <span>${calculateTotalScore(currentUser.bracket, actualBracket)}</span> pts</div>`}
             ${mode === 'actual' && html`<div class="total-points admin-mode">Official Results</div>`}
-            ${mode === 'leaderboard' && html`<div class="total-points" style="color: #cbd5e1;">Leaderboard (Max Possible: 224 pts)</div>`}
+            ${mode === 'leaderboard' && html`<div class="total-points" style="color: #cbd5e1;">Leaderboard</div>`}
+            ${mode === 'leaderboard' && html`<div class="total-points" style="color: #cbd5e1;">Possible points: ${maxPossiblePoints} <br /> Remaining points: ${maxRemaining}</div>`}
           </div>
 
           ${mode === 'leaderboard' ? html`
