@@ -814,7 +814,7 @@
 
       // The "or"(||) is the intentional here to allow the user to get points even if they predicted the wrong team but got the score right for one of the teams.
       // If "and" (&&) was used, the user would only get points if they predicted the correct team and the correct score, which is not the intended behavior.
-      const sameTeams = userM.team1 === actualM.team1 || userM.team2 === actualM.team2;
+      const sameTeams = ((userM.team1 === actualM.team1) && (userM.team2 === actualM.team2)) || ((userM.team1 === actualM.team2) && (userM.team2 === actualM.team1));
       const exactScore = sameTeams && (u1 === a1 && u2 === a2);
 
       if (exactScore && actualWinner !== '') return 7;
